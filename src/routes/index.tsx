@@ -1,118 +1,245 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   Zap,
   Server,
   Route as RouteIcon,
   Shield,
-  Waves,
   Sparkles,
+  Terminal,
+  ArrowRight,
+  Cpu,
+  Code2,
+  Bot,
 } from 'lucide-react'
 
-export const Route = createFileRoute('/')({ component: App })
+export const Route = createFileRoute('/')({ component: LandingPage })
 
-function App() {
+function LandingPage() {
   const features = [
     {
-      icon: <Zap className="w-12 h-12 text-cyan-400" />,
-      title: 'Powerful Server Functions',
+      icon: <Bot className="w-10 h-10 text-orange-500" />,
+      title: 'AI-Powered Agent',
       description:
-        'Write server-side code that seamlessly integrates with your client components. Type-safe, secure, and simple.',
+        'Built on Vercel AI SDK with advanced language model capabilities. Experience natural, context-aware conversations.',
     },
     {
-      icon: <Server className="w-12 h-12 text-cyan-400" />,
-      title: 'Flexible Server Side Rendering',
+      icon: <Terminal className="w-10 h-10 text-amber-400" />,
+      title: 'Browser-Based Terminal',
       description:
-        'Full-document SSR, streaming, and progressive enhancement out of the box. Control exactly what renders where.',
+        'Full terminal emulation in the browser via OPFS and bash-tool integration. Execute commands seamlessly.',
     },
     {
-      icon: <RouteIcon className="w-12 h-12 text-cyan-400" />,
-      title: 'API Routes',
+      icon: <Cpu className="w-10 h-10 text-coral" />,
+      title: 'Local File System',
       description:
-        'Build type-safe API endpoints alongside your application. No separate backend needed.',
+        'Direct access to your local files through AgentFS and OPFS. Read, write, and manage files with AI assistance.',
     },
     {
-      icon: <Shield className="w-12 h-12 text-cyan-400" />,
-      title: 'Strongly Typed Everything',
+      icon: <Code2 className="w-10 h-10 text-orange-500" />,
+      title: 'Developer First',
       description:
-        'End-to-end type safety from server to client. Catch errors before they reach production.',
+        'Built for developers by developers. Type-safe, extensible, and open source. Integrate with your workflow.',
     },
     {
-      icon: <Waves className="w-12 h-12 text-cyan-400" />,
-      title: 'Full Streaming Support',
+      icon: <Zap className="w-10 h-10 text-amber-400" />,
+      title: 'Lightning Fast',
       description:
-        'Stream data from server to client progressively. Perfect for AI applications and real-time updates.',
+        'Powered by Cloudflare Workers edge computing. Low latency responses from anywhere in the world.',
     },
     {
-      icon: <Sparkles className="w-12 h-12 text-cyan-400" />,
-      title: 'Next Generation Ready',
+      icon: <Shield className="w-10 h-10 text-orange-500" />,
+      title: 'Privacy Focused',
       description:
-        'Built from the ground up for modern web applications. Deploy anywhere JavaScript runs.',
+        'Your data stays local. Files are processed in-browser, and API keys are stored securely in your environment.',
     },
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <section className="relative py-20 px-6 text-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10"></div>
-        <div className="relative max-w-5xl mx-auto">
-          <div className="flex items-center justify-center gap-6 mb-6">
-            <img
-              src="/tanstack-circle-logo.png"
-              alt="TanStack Logo"
-              className="w-24 h-24 md:w-32 md:h-32"
-            />
-            <h1 className="text-6xl md:text-7xl font-black text-white [letter-spacing:-0.08em]">
-              <span className="text-gray-300">TANSTACK</span>{' '}
-              <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                START
+    <div className="min-h-screen bg-[#0D0D0D] overflow-hidden">
+      {/* Animated background gradient */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
+
+      {/* Header */}
+      <header className="relative z-10 glass-strong border-b border-orange-500/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Terminal className="w-8 h-8 text-orange-500" />
+                <div className="absolute inset-0 blur-lg bg-orange-500/50 -z-10" />
+              </div>
+              <span className="font-display text-xl font-bold text-white glow-orange-text">
+                LOCALCLAW
               </span>
-            </h1>
+            </div>
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 rounded-lg transition-all duration-300 hover:glow-orange font-code text-sm group"
+            >
+              <span>LAUNCH</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
-          <p className="text-2xl md:text-3xl text-gray-300 mb-4 font-light">
-            The framework for next generation AI applications
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative z-10 py-24 px-6 text-center">
+        <div className="max-w-5xl mx-auto">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full glass border-glow">
+            <Sparkles className="w-4 h-4 text-orange-400" />
+            <span className="text-sm text-orange-400 font-code">AI AGENT FRAMEWORK</span>
+          </div>
+
+          {/* Main heading */}
+          <h1 className="font-display text-5xl md:text-7xl font-black mb-6">
+            <span className="text-white">YOUR LOCAL</span>
+            <br />
+            <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent glow-orange-text">
+              AI AGENT
+            </span>
+          </h1>
+
+          <p className="text-xl md:text-2xl text-stone-300 mb-4 font-light max-w-3xl mx-auto">
+            A fully browser-based AI agent powered by
+            <span className="text-orange-400"> Vercel AI SDK</span>
           </p>
-          <p className="text-lg text-gray-400 max-w-3xl mx-auto mb-8">
-            Full-stack framework powered by TanStack Router for React and Solid.
-            Build modern applications with server functions, streaming, and type
-            safety.
+
+          <p className="text-base text-stone-400 max-w-2xl mx-auto mb-10 font-code">
+            LocalClaw combines OPFS, AgentFS, and bash-tool to create a powerful
+            AI assistant that runs entirely in your browser. No installation required.
           </p>
-          <div className="flex flex-col items-center gap-4">
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-400 text-white font-bold rounded-lg transition-all duration-300 hover:glow-orange text-lg group"
+            >
+              <Terminal className="w-5 h-5" />
+              <span>START AGENT</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
             <a
-              href="https://tanstack.com/start"
+              href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-cyan-500/50"
+              className="flex items-center gap-2 px-8 py-4 glass hover:glass-strong text-orange-400 border border-orange-500/30 rounded-lg transition-all duration-300 text-lg"
             >
-              Documentation
+              <Code2 className="w-5 h-5" />
+              <span>VIEW SOURCE</span>
             </a>
-            <p className="text-gray-400 text-sm mt-2">
-              Begin your TanStack Start journey by editing{' '}
-              <code className="px-2 py-1 bg-slate-700 rounded text-cyan-400">
-                /src/routes/index.tsx
-              </code>
-            </p>
+          </div>
+
+          {/* Tech stack indicators */}
+          <div className="mt-16 flex flex-wrap items-center justify-center gap-6 text-stone-500 font-code text-sm">
+            <span className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+              TanStack Start
+            </span>
+            <span className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
+              Cloudflare Workers
+            </span>
+            <span className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-coral animate-pulse" style={{ animationDelay: '0.4s' }} />
+              Vercel AI SDK
+            </span>
+            <span className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" style={{ animationDelay: '0.6s' }} />
+              OPFS / AgentFS
+            </span>
           </div>
         </div>
       </section>
 
-      <section className="py-16 px-6 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10"
-            >
-              <div className="mb-4">{feature.icon}</div>
-              <h3 className="text-xl font-semibold text-white mb-3">
-                {feature.title}
-              </h3>
-              <p className="text-gray-400 leading-relaxed">
-                {feature.description}
-              </p>
-            </div>
-          ))}
+      {/* Features Grid */}
+      <section className="relative z-10 py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">
+              POWERFUL CAPABILITIES
+            </h2>
+            <p className="text-stone-400 font-code">
+              Everything you need for AI-powered development
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="group glass border-glow-hover rounded-xl p-6 transition-all duration-300 hover:-translate-y-1"
+              >
+                <div className="mb-4 relative">
+                  <div className="absolute inset-0 blur-lg bg-orange-400/20 group-hover:bg-orange-400/30 transition-colors rounded-full" />
+                  {feature.icon}
+                </div>
+                <h3 className="font-display text-lg font-semibold text-white mb-3">
+                  {feature.title}
+                </h3>
+                <p className="text-stone-400 text-sm leading-relaxed">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
+
+      {/* Terminal Preview Section */}
+      <section className="relative z-10 py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="glass-strong rounded-xl overflow-hidden border border-orange-500/30 glow-orange">
+            {/* Terminal header */}
+            <div className="flex items-center gap-2 px-4 py-3 bg-stone-900/80 border-b border-orange-500/20">
+              <div className="w-3 h-3 rounded-full bg-red-500" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500" />
+              <div className="w-3 h-3 rounded-full bg-amber-400" />
+              <span className="ml-4 text-xs text-stone-500 font-code">localclaw-agent</span>
+            </div>
+            {/* Terminal content */}
+            <div className="p-6 font-code text-sm space-y-2 bg-stone-950/50">
+              <div className="flex items-center gap-2">
+                <span className="text-orange-400">➜</span>
+                <span className="text-stone-300">~</span>
+                <span className="text-stone-500">localclaw init</span>
+              </div>
+              <div className="text-amber-400">
+                ✓ Agent initialized successfully
+              </div>
+              <div className="text-stone-400">
+                ✓ Connected to OpenAI GPT-4o
+              </div>
+              <div className="text-stone-400">
+                ✓ OPFS filesystem mounted
+              </div>
+              <div className="flex items-center gap-2 mt-4">
+                <span className="text-orange-400">➜</span>
+                <span className="text-stone-300">~</span>
+                <span className="text-stone-500">_</span>
+                <span className="w-2 h-4 bg-orange-400 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 py-8 px-6 border-t border-orange-500/10">
+        <div className="max-w-7xl mx-auto text-center">
+          <p className="text-stone-500 text-sm font-code">
+            Built with <span className="text-orange-400">TanStack Start</span> +{' '}
+            <span className="text-amber-400">Cloudflare Workers</span> +{' '}
+            <span className="text-coral">Vercel AI SDK</span>
+          </p>
+        </div>
+      </footer>
     </div>
   )
 }

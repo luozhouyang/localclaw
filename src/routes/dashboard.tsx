@@ -4,7 +4,7 @@ import { ChatTab } from '@/components/dashboard/ChatTab'
 import { FilesTab } from '@/components/dashboard/FilesTab'
 import { TasksTab } from '@/components/dashboard/TasksTab'
 import { SettingsTab } from '@/components/dashboard/SettingsTab'
-import { MessageSquare, FolderOpen, CheckSquare, Settings } from 'lucide-react'
+import { MessageSquare, FolderOpen, CheckSquare, Settings, Terminal } from 'lucide-react'
 
 export const Route = createFileRoute('/dashboard')({
   component: Dashboard,
@@ -13,33 +13,64 @@ export const Route = createFileRoute('/dashboard')({
 
 function Dashboard() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="border-b bg-white">
+    <div className="min-h-screen bg-[#0D0D0D]">
+      {/* Header with glass effect */}
+      <div className="glass-strong sticky top-0 z-50 border-b border-orange-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <h1 className="text-xl font-semibold text-slate-900">Dashboard</h1>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Terminal className="w-8 h-8 text-orange-500" />
+                <div className="absolute inset-0 blur-lg bg-orange-500/50 -z-10" />
+              </div>
+              <div>
+                <h1 className="font-display text-xl font-bold text-white glow-orange-text">
+                  LOCALCLAW
+                </h1>
+                <p className="text-xs text-orange-500/70 font-code tracking-wider">
+                  AGENT v1.0
+                </p>
+              </div>
+            </div>
+            {/* Status indicator */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full glass border-glow">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-xs text-amber-400 font-code">ONLINE</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="chat" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
-            <TabsTrigger value="chat" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[500px] glass-panel p-1 gap-1">
+            <TabsTrigger
+              value="chat"
+              className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
+            >
               <MessageSquare className="w-4 h-4" />
-              <span className="hidden sm:inline">Chat</span>
+              <span className="hidden sm:inline">CHAT</span>
             </TabsTrigger>
-            <TabsTrigger value="files" className="flex items-center gap-2">
+            <TabsTrigger
+              value="files"
+              className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
+            >
               <FolderOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">Files</span>
+              <span className="hidden sm:inline">FILES</span>
             </TabsTrigger>
-            <TabsTrigger value="tasks" className="flex items-center gap-2">
+            <TabsTrigger
+              value="tasks"
+              className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
+            >
               <CheckSquare className="w-4 h-4" />
-              <span className="hidden sm:inline">Tasks</span>
+              <span className="hidden sm:inline">TASKS</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
+            <TabsTrigger
+              value="settings"
+              className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
+            >
               <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Settings</span>
+              <span className="hidden sm:inline">CONFIG</span>
             </TabsTrigger>
           </TabsList>
 
