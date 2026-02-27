@@ -48,7 +48,6 @@ export function LLMProviderSettings() {
     saveProvider,
     deleteProvider,
     setActiveProvider,
-    createProviderFromTemplate,
     createCustomProvider,
   } = useLLMSettings();
 
@@ -519,7 +518,6 @@ export function LLMProviderSettings() {
 
                       {/* Models */}
                       <ModelListEditor
-                        providerId={provider.id}
                         models={editingProvider.models}
                         defaultModel={editingProvider.defaultModel}
                         onModelsChange={(models) =>

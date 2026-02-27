@@ -5,7 +5,6 @@ import { Check, Plus, Trash } from "lucide-react";
 import { useState } from "react";
 
 interface ModelListEditorProps {
-  providerId: string;
   models: string[];
   defaultModel: string;
   onModelsChange: (models: string[]) => void;
@@ -13,7 +12,6 @@ interface ModelListEditorProps {
 }
 
 export function ModelListEditor({
-  providerId,
   models,
   defaultModel,
   onModelsChange,
