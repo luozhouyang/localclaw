@@ -1,58 +1,59 @@
-import { useState } from 'react'
-import { Send, Bot, User } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Bot, Send, User } from "lucide-react";
+import { useState } from "react";
 
 interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
 }
 
 export function ChatTab() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
-      role: 'assistant',
-      content: 'Hello! How can I help you today?',
+      id: "1",
+      role: "assistant",
+      content: "Hello! How can I help you today?",
       timestamp: new Date(),
     },
-  ])
-  const [input, setInput] = useState('')
+  ]);
+  const [input, setInput] = useState("");
 
   const handleSend = () => {
-    if (!input.trim()) return
+    if (!input.trim()) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      role: 'user',
+      role: "user",
       content: input,
       timestamp: new Date(),
-    }
+    };
 
-    setMessages((prev) => [...prev, userMessage])
-    setInput('')
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
 
     // Simulate assistant response
     setTimeout(() => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'This is a demo response. In a real app, this would be connected to an AI service.',
+        role: "assistant",
+        content:
+          "This is a demo response. In a real app, this would be connected to an AI service.",
         timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, assistantMessage])
-    }, 1000)
-  }
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    }, 1000);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
-  }
+  };
 
   return (
     <Card className="h-[600px] flex flex-col">
@@ -68,30 +69,30 @@ export function ChatTab() {
             <div
               key={message.id}
               className={`flex gap-3 ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
+                message.role === "user" ? "justify-end" : "justify-start"
               }`}
             >
-              {message.role === 'assistant' && (
+              {message.role === "assistant" && (
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <Bot className="w-4 h-4 text-primary" />
                 </div>
               )}
               <div
                 className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                  message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
+                  message.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
                 }`}
               >
                 <p className="text-sm">{message.content}</p>
                 <span className="text-xs opacity-70 mt-1 block">
                   {message.timestamp.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </span>
               </div>
-              {message.role === 'user' && (
+              {message.role === "user" && (
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                   <User className="w-4 h-4 text-primary-foreground" />
                 </div>
@@ -114,5 +115,5 @@ export function ChatTab() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -8,6 +8,7 @@ import { MessageSquare, FolderOpen, CheckSquare, Settings } from 'lucide-react'
 
 export const Route = createFileRoute('/dashboard')({
   component: Dashboard,
+  ssr: false
 })
 
 function Dashboard() {

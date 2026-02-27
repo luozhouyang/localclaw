@@ -1,25 +1,32 @@
-import { useState } from 'react'
-import { Settings, Bell, Shield, User, Palette, Globe } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-import { Button } from '@/components/ui/button'
+import { LLMProviderSettings } from "@/components/settings/provider-settings";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Bell, Palette, Shield, User } from "lucide-react";
+import { useState } from "react";
 
 export function SettingsTab() {
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
     weekly: true,
-  })
+  });
 
   return (
     <div className="space-y-6">
@@ -58,7 +65,9 @@ export function SettingsTab() {
             <Bell className="w-5 h-5" />
             Notifications
           </CardTitle>
-          <CardDescription>Configure how you receive notifications</CardDescription>
+          <CardDescription>
+            Configure how you receive notifications
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
@@ -174,6 +183,9 @@ export function SettingsTab() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* LLM Provider */}
+      <LLMProviderSettings />
     </div>
-  )
+  );
 }
