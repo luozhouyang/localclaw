@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   Zap,
-  Server,
-  Route as RouteIcon,
   Shield,
   Sparkles,
   Terminal,

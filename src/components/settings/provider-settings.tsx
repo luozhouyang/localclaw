@@ -4,7 +4,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,9 +31,9 @@ import {
 import { useState } from "react";
 import { ModelListEditor } from "./provider-model-list";
 
-// Validate provider name: only alphanumeric characters allowed
+// Validate provider name: alphanumeric, hyphens and underscores allowed
 const isValidProviderName = (name: string): boolean => {
-  return /^[a-zA-Z0-9]+$/.test(name);
+  return /^[a-zA-Z0-9_-]+$/.test(name);
 };
 
 // Convert name to valid provider ID (lowercase)
@@ -73,10 +72,10 @@ export function LLMProviderSettings() {
     const template = PROVIDER_TEMPLATES.find((t) => t.id === selectedTemplate);
     if (!template) return;
 
-    // Template name must be valid (alphanumeric only)
+    // Template name must be valid
     if (!isValidProviderName(template.name)) {
       setValidationError(
-        `Provider name must contain only letters and numbers (no spaces or special characters)`,
+        `Provider name must contain only letters, numbers, hyphens and underscores`,
       );
       return;
     }
@@ -119,7 +118,7 @@ export function LLMProviderSettings() {
     // Default custom provider name must be valid
     if (!isValidProviderName(customProvider.name)) {
       setValidationError(
-        `Provider name must contain only letters and numbers (no spaces or special characters). Please edit the name before saving.`,
+        `Provider name must contain only letters, numbers, hyphens and underscores. Please edit the name before saving.`,
       );
       // Still create it, but user needs to fix the name
     }
@@ -164,7 +163,8 @@ export function LLMProviderSettings() {
         [field]: value,
       };
 
-      // If name changed, update id accordingly
+      // If name changed, check for conflicts but don't update id yet
+      // (id will be updated on save to avoid re-rendering issues)
       if (field === "name" && typeof value === "string") {
         const newId = nameToProviderId(value);
         // Check if new id conflicts with existing providers
@@ -180,14 +180,8 @@ export function LLMProviderSettings() {
         } else {
           setValidationError(null);
         }
-
-        updatedProvider.id = newId;
-
-        // Update the key in editingProviders
-        const newEditingProviders = { ...prev };
-        delete newEditingProviders[id];
-        newEditingProviders[newId] = updatedProvider;
-        return newEditingProviders;
+        // Note: id is not updated here to avoid re-rendering issues
+        // It will be updated on save
       }
 
       return {
@@ -205,22 +199,31 @@ export function LLMProviderSettings() {
     // Validate name before saving
     if (!isValidProviderName(provider.name)) {
       setValidationError(
-        "Provider name must contain only letters and numbers (no spaces or special characters)",
+        "Provider name must contain only letters, numbers, hyphens and underscores",
       );
       return;
     }
 
+    // Calculate the correct id based on name
     const expectedId = nameToProviderId(provider.name);
-    if (expectedId !== provider.id) {
+
+    // If this is a new provider (not yet in providers list), update the id to match name
+    const isNewProvider = !providers.find((p) => p.id === id);
+    const providerToSave = isNewProvider
+      ? { ...provider, id: expectedId }
+      : provider;
+
+    // If updating an existing provider and id would change, delete old and save new
+    if (!isNewProvider && expectedId !== provider.id) {
       setValidationError(
-        "Provider ID does not match name. Please check the name.",
+        "Cannot change name of saved provider. Delete and recreate to change the name.",
       );
       return;
     }
 
     setSaveStatus((prev) => ({ ...prev, [id]: "saving" }));
     try {
-      await saveProvider(provider);
+      await saveProvider(providerToSave);
       setSaveStatus((prev) => ({ ...prev, [id]: "saved" }));
       setValidationError(null);
       // Remove from editing state after a delay
@@ -536,8 +539,7 @@ export function LLMProviderSettings() {
                         className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code text-white placeholder:text-stone-600"
                       />
                       <p className="text-xs text-stone-500 font-code">
-                        Only letters and numbers allowed (no spaces or special
-                        characters)
+                        Letters, numbers, hyphens (-) and underscores (_) allowed
                       </p>
                     </div>
 

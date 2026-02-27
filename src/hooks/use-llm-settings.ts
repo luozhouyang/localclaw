@@ -175,9 +175,10 @@ export function useLLMSettings() {
 
   // Create a custom provider
   const createCustomProvider = useCallback((): LLMProvider => {
+    const timestamp = Date.now()
     return {
-      id: `custom-${Date.now()}`,
-      name: 'Custom Provider',
+      id: `custom${timestamp}`,
+      name: `CustomProvider${timestamp}`,
       baseURL: '',
       apiKey: '',
       models: [],

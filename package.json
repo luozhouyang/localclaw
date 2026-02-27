@@ -17,6 +17,9 @@
 		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {
+		"@ai-sdk/anthropic": "^3.0.48",
+		"@ai-sdk/openai": "^3.0.36",
+		"@ai-sdk/react": "^3.0.105",
 		"@cloudflare/vite-plugin": "^1.13.8",
 		"@tailwindcss/vite": "^4.1.18",
 		"@tanstack/react-devtools": "^0.7.0",
@@ -27,6 +30,7 @@
 		"@tanstack/router-plugin": "^1.132.0",
 		"@tursodatabase/database-wasm": "^0.4.4",
 		"agentfs-sdk": "^0.6.2",
+		"ai": "^6.0.103",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"just-bash": "^2.11.2",
