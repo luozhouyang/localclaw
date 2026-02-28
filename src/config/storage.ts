@@ -1,4 +1,4 @@
-import { getSystemStorage } from './fs';
+import { getSystemStorage } from './agent-fs';
 
 /**
  * Unified configuration storage using AgentFS KV
