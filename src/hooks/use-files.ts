@@ -1,0 +1,235 @@
+import { useCallback, useEffect, useState } from 'react';
+import { getAgentStorage } from '@/config/agent-fs';
+
+export interface FileItem {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  size: number;
+  mtime: number;
+}
+
+export interface UseFilesReturn {
+  files: FileItem[];
+  currentPath: string;
+  isLoading: boolean;
+  error: string | null;
+  navigateTo: (path: string) => Promise<void>;
+  navigateUp: () => Promise<void>;
+  listFiles: (path?: string) => Promise<void>;
+  createDirectory: (name: string) => Promise<void>;
+  deleteItem: (name: string) => Promise<void>;
+  renameItem: (oldName: string, newName: string) => Promise<void>;
+  uploadFile: (file: File, targetName?: string) => Promise<void>;
+  readFile: (name: string) => Promise<string>;
+  writeFile: (name: string, content: string) => Promise<void>;
+  refresh: () => Promise<void>;
+}
+
+export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [currentPath, setCurrentPath] = useState(initialPath);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const listFiles = useCallback(async (path: string = currentPath) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const agent = await getAgentStorage();
+
+      // Ensure directory exists (recursively create parent directories)
+      try {
+        await agent.fs.access(path);
+      } catch {
+        // Create parent directories recursively
+        const parts = path.split('/').filter(Boolean);
+        let currentPath = '';
+        for (const part of parts) {
+          currentPath += '/' + part;
+          try {
+            await agent.fs.access(currentPath);
+          } catch {
+            // Directory doesn't exist, create it
+            try {
+              await agent.fs.mkdir(currentPath);
+            } catch (mkdirErr: any) {
+              // Ignore "already exists" errors, throw others
+              if (!mkdirErr.message?.includes('exists')) {
+                throw mkdirErr;
+              }
+            }
+          }
+        }
+      }
+
+      const entries = await agent.fs.readdir(path);
+      const fileItems: FileItem[] = [];
+
+      for (const name of entries) {
+        const fullPath = `${path}/${name}`.replace(/\/+/g, '/');
+        try {
+          const stats = await agent.fs.stat(fullPath);
+          fileItems.push({
+            name,
+            path: fullPath,
+            type: stats.isDirectory() ? 'directory' : 'file',
+            size: stats.size || 0,
+            mtime: stats.mtime ? stats.mtime * 1000 : Date.now(),
+          });
+        } catch (err) {
+          console.warn(`[useFiles] Failed to stat ${fullPath}:`, err);
+        }
+      }
+
+      // Sort directories first, then by name
+      fileItems.sort((a, b) => {
+        if (a.type === b.type) {
+          return a.name.localeCompare(b.name);
+        }
+        return a.type === 'directory' ? -1 : 1;
+      });
+
+      setFiles(fileItems);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to list files');
+      console.error('[useFiles] Error listing files:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPath]);
+
+  const navigateTo = useCallback(async (path: string) => {
+    setCurrentPath(path);
+    await listFiles(path);
+  }, [listFiles]);
+
+  const navigateUp = useCallback(async () => {
+    const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
+    await navigateTo(parentPath);
+  }, [currentPath, navigateTo]);
+
+  const createDirectory = useCallback(async (name: string) => {
+    setIsLoading(true);
+    try {
+      const agent = await getAgentStorage();
+      const newPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
+      await agent.fs.mkdir(newPath);
+      await listFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create directory');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPath, listFiles]);
+
+  const deleteItem = useCallback(async (name: string) => {
+    setIsLoading(true);
+    try {
+      const agent = await getAgentStorage();
+      const targetPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
+      const stats = await agent.fs.stat(targetPath);
+
+      if (stats.isDirectory()) {
+        await agent.fs.rm(targetPath, { recursive: true, force: true });
+      } else {
+        await agent.fs.unlink(targetPath);
+      }
+
+      await listFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete item');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPath, listFiles]);
+
+  const renameItem = useCallback(async (oldName: string, newName: string) => {
+    setIsLoading(true);
+    try {
+      const agent = await getAgentStorage();
+      const oldPath = `${currentPath}/${oldName}`.replace(/\/+/g, '/');
+      const newPath = `${currentPath}/${newName}`.replace(/\/+/g, '/');
+      await agent.fs.rename(oldPath, newPath);
+      await listFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to rename item');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPath, listFiles]);
+
+  const uploadFile = useCallback(async (file: File, targetName?: string) => {
+    setIsLoading(true);
+    try {
+      const agent = await getAgentStorage();
+      const name = targetName || file.name;
+      const targetPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
+
+      const content = await file.text();
+      await agent.fs.writeFile(targetPath, content);
+      await listFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload file');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPath, listFiles]);
+
+  const readFile = useCallback(async (name: string): Promise<string> => {
+    try {
+      const agent = await getAgentStorage();
+      const filePath = `${currentPath}/${name}`.replace(/\/+/g, '/');
+      return await agent.fs.readFile(filePath, 'utf-8');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to read file');
+      throw err;
+    }
+  }, [currentPath]);
+
+  const writeFile = useCallback(async (name: string, content: string) => {
+    setIsLoading(true);
+    try {
+      const agent = await getAgentStorage();
+      const filePath = `${currentPath}/${name}`.replace(/\/+/g, '/');
+      await agent.fs.writeFile(filePath, content);
+      await listFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to write file');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPath, listFiles]);
+
+  const refresh = useCallback(async () => {
+    await listFiles(currentPath);
+  }, [currentPath, listFiles]);
+
+  // Load files on mount and when path changes
+  useEffect(() => {
+    listFiles();
+  }, [listFiles]);
+
+  return {
+    files,
+    currentPath,
+    isLoading,
+    error,
+    navigateTo,
+    navigateUp,
+    listFiles,
+    createDirectory,
+    deleteItem,
+    renameItem,
+    uploadFile,
+    readFile,
+    writeFile,
+    refresh,
+  };
+}

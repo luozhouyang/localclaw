@@ -1,11 +1,9 @@
-import { getSettings, setSettings } from '@/storage/settings'
+import { useCallback, useEffect, useState } from 'react'
+import { providerStorage } from '@/config/provider-configs'
 import {
-  getProviderStorageKey,
   type LLMProvider,
   PROVIDER_TEMPLATES,
-  STORAGE_KEYS,
 } from '@/types/llm'
-import { useCallback, useEffect, useState } from 'react'
 
 export function useLLMSettings() {
   const [providers, setProviders] = useState<LLMProvider[]>([])
@@ -19,30 +17,21 @@ export function useLLMSettings() {
     setError(null)
 
     try {
-      const ids = await getSettings<string[]>(STORAGE_KEYS.PROVIDER_IDS)
-      const activeId = await getSettings<string>(STORAGE_KEYS.ACTIVE_PROVIDER_ID)
+      const [allProviders, activeId] = await Promise.all([
+        providerStorage.getAllProviders(),
+        providerStorage.getActiveProviderId(),
+      ])
 
       if (activeId) {
         setActiveProviderId(activeId)
       }
 
-      if (!ids || ids.length === 0) {
-        setProviders([])
-      } else {
-        const loadedProviders = await Promise.all(
-          ids.map(async (id) => {
-            const provider = await getSettings<LLMProvider>(getProviderStorageKey(id))
-            return provider
-          })
-        )
-        const validProviders = loadedProviders.filter(Boolean) as LLMProvider[]
-        // Add isActive flag based on activeProviderId
-        const providersWithActive = validProviders.map(p => ({
-          ...p,
-          isActive: p.id === activeId
-        }))
-        setProviders(providersWithActive)
-      }
+      // Add isActive flag based on activeProviderId
+      const providersWithActive = allProviders.map(p => ({
+        ...p,
+        isActive: p.id === activeId
+      }))
+      setProviders(providersWithActive)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load providers')
       console.error('Failed to load providers:', err)
@@ -63,12 +52,7 @@ export function useLLMSettings() {
   // Set active provider
   const setActiveProvider = useCallback(async (id: string | null) => {
     try {
-      if (id) {
-        await setSettings(STORAGE_KEYS.ACTIVE_PROVIDER_ID, id)
-      } else {
-        await setSettings(STORAGE_KEYS.ACTIVE_PROVIDER_ID, null as unknown as string)
-      }
-
+      await providerStorage.setActiveProviderId(id)
       setActiveProviderId(id)
 
       // Update local state to reflect active status
@@ -88,20 +72,14 @@ export function useLLMSettings() {
 
   // Get a single provider by ID
   const getProvider = useCallback(async (id: string): Promise<LLMProvider | null> => {
-    return await getSettings<LLMProvider>(getProviderStorageKey(id))
+    return providerStorage.getProvider(id)
   }, [])
 
   // Save a provider
   const saveProvider = useCallback(async (provider: LLMProvider) => {
     try {
       // Save the provider
-      await setSettings(getProviderStorageKey(provider.id), provider)
-
-      // Update IDs list if it's a new provider
-      const ids = (await getSettings<string[]>(STORAGE_KEYS.PROVIDER_IDS)) || []
-      if (!ids.includes(provider.id)) {
-        await setSettings(STORAGE_KEYS.PROVIDER_IDS, [...ids, provider.id])
-      }
+      await providerStorage.saveProvider(provider)
 
       // Update local state
       setProviders((prev) => {
@@ -128,19 +106,10 @@ export function useLLMSettings() {
   // Delete a provider
   const deleteProvider = useCallback(async (id: string) => {
     try {
-      // Remove provider data (set to null)
-      await setSettings(getProviderStorageKey(id), null as unknown as LLMProvider)
+      await providerStorage.deleteProvider(id)
 
-      // Update IDs list
-      const ids = (await getSettings<string[]>(STORAGE_KEYS.PROVIDER_IDS)) || []
-      await setSettings(
-        STORAGE_KEYS.PROVIDER_IDS,
-        ids.filter((i) => i !== id)
-      )
-
-      // If deleting active provider, clear active provider
+      // If deleting active provider, clear local state
       if (activeProviderId === id) {
-        await setSettings(STORAGE_KEYS.ACTIVE_PROVIDER_ID, null as unknown as string)
         setActiveProviderId(null)
       }
 
