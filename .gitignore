@@ -1,5 +1,7 @@
 .playwright-mcp
 design-system
+plans
+docs
 
 node_modules
 .DS_Store
