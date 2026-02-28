@@ -1,80 +1,40 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bot, Send, User, AlertCircle, Loader2 } from "lucide-react";
+import { Bot, Send, User, AlertCircle, Loader2, Wrench, CheckCircle, XCircle } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
 import { useLLMSettings } from "@/hooks/use-llm-settings";
-import { useChat, Chat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
-import type { UIMessage } from "ai";
+import { useAgent } from "@/hooks/use-agent";
+import type { UIMessage, DynamicToolUIPart } from "ai";
 
 export function ChatTab() {
   const { activeProvider } = useLLMSettings();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [chatInstance, setChatInstance] = useState<Chat<UIMessage> | null>(null);
+  const [input, setInput] = useState("");
 
-  // Create chat instance when provider changes
-  useEffect(() => {
-    if (!activeProvider) {
-      setChatInstance(null);
-      return;
-    }
-
-    const transport = new DefaultChatTransport<UIMessage>({
-      api: "/api/chat",
-      body: {
-        provider: {
-          baseURL: activeProvider.baseURL,
-          apiKey: activeProvider.apiKey,
-          defaultModel: activeProvider.defaultModel,
-        },
-      },
-    });
-
-    const chat = new Chat<UIMessage>({
-      transport,
-    });
-
-    setChatInstance(chat);
-  }, [activeProvider]);
+  // Convert activeProvider to the format useAgent expects
+  const provider = activeProvider ? {
+    baseURL: activeProvider.baseURL,
+    apiKey: activeProvider.apiKey,
+    model: activeProvider.defaultModel,
+  } : null;
 
   const {
     messages,
-    status,
-    error,
+    isLoading,
     sendMessage,
-    setMessages,
-  } = useChat(chatInstance ? { chat: chatInstance } : undefined);
-
-  const [input, setInput] = useState("");
-  const isLoading = status === "streaming" || status === "submitted";
+    clear,
+  } = useAgent({ provider });
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Show welcome message if no messages and provider is set
-  useEffect(() => {
-    if (messages.length === 0 && activeProvider) {
-      const welcomeContent = `Hello! I'm connected to ${activeProvider.name} (${activeProvider.defaultModel}). How can I help you today?`;
-      setMessages([
-        {
-          id: "welcome",
-          role: "assistant",
-          parts: [{ type: "text", text: welcomeContent }],
-        } as UIMessage,
-      ]);
-    }
-  }, [activeProvider, messages.length, setMessages]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !chatInstance) return;
+    if (!input.trim() || !provider) return;
 
-    sendMessage({
-      role: "user",
-      parts: [{ type: "text", text: input.trim() }],
-    });
+    sendMessage(input.trim());
     setInput("");
   };
 
@@ -85,15 +45,56 @@ export function ChatTab() {
     }
   };
 
-  const isReady = activeProvider && activeProvider.apiKey && chatInstance;
+  const isReady = activeProvider && activeProvider.apiKey;
 
-  // Helper to get text content from message parts
-  const getMessageText = (msg: UIMessage): string => {
-    if (!msg.parts || msg.parts.length === 0) return "";
-    return msg.parts
-      .filter((part): part is { type: "text"; text: string } => part.type === "text")
-      .map((part) => part.text)
-      .join("");
+  // Helper to render UIMessage
+  const renderMessage = (message: UIMessage, index: number) => {
+    const isUser = message.role === 'user';
+
+    return (
+      <div key={message.id || index} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+        {/* Avatar */}
+        {!isUser && (
+          <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0 border border-orange-500/30">
+            <Bot className="w-4 h-4 text-orange-400" />
+          </div>
+        )}
+
+        {/* Message content */}
+        <div className={`max-w-[70%] space-y-2`}>
+          {message.parts.map((part, partIndex) => {
+            switch (part.type) {
+              case 'text':
+                return (
+                  <div
+                    key={partIndex}
+                    className={`rounded-lg px-4 py-2 ${
+                      isUser
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-stone-800/50 border border-orange-500/20'
+                    }`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{part.text}</p>
+                  </div>
+                );
+
+              case 'dynamic-tool':
+                return <DynamicTool key={partIndex} tool={part} />;
+
+              default:
+                return null;
+            }
+          })}
+        </div>
+
+        {/* User avatar */}
+        {isUser && (
+          <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
+            <User className="w-4 h-4 text-white" />
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -120,12 +121,22 @@ export function ChatTab() {
             )}
           </div>
         </div>
-        {isReady && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-xs text-amber-400 font-code">READY</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <button
+              onClick={clear}
+              className="text-xs text-stone-400 hover:text-orange-400 transition-colors"
+            >
+              Clear
+            </button>
+          )}
+          {isReady && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-xs text-amber-400 font-code">READY</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -142,47 +153,20 @@ export function ChatTab() {
           </div>
         )}
 
-        {error && (
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/30">
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-            <div className="text-sm text-red-400">
-              <p className="font-medium">Error</p>
-              <p className="text-xs text-red-400/70 mt-1">{error.message}</p>
+        {messages.length === 0 && isReady && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center text-stone-500">
+              <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="font-code text-sm">Start a conversation with the agent</p>
+              <p className="text-xs mt-2">Try: "List files in /" or "Create a file"</p>
             </div>
           </div>
         )}
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex gap-3 ${
-              message.role === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            {message.role === "assistant" && (
-              <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0 border border-orange-500/30">
-                <Bot className="w-4 h-4 text-orange-400" />
-              </div>
-            )}
-            <div
-              className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                message.role === "user"
-                  ? "bg-orange-500 text-white"
-                  : "bg-stone-800/50 border border-orange-500/20"
-              }`}
-            >
-              <p className="text-sm whitespace-pre-wrap">{getMessageText(message)}</p>
-            </div>
-            {message.role === "user" && (
-              <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4 text-white" />
-              </div>
-            )}
-          </div>
-        ))}
+        {messages.map((message, index) => renderMessage(message, index))}
 
         {isLoading && (
-          <div className="flex gap-3">
+          <div className="flex gap-3 justify-start">
             <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0 border border-orange-500/30">
               <Bot className="w-4 h-4 text-orange-400" />
             </div>
@@ -228,4 +212,36 @@ export function ChatTab() {
       </div>
     </div>
   );
+}
+
+// Dynamic tool component
+function DynamicTool({ tool }: { tool: DynamicToolUIPart }) {
+  const { state, toolName, output } = tool;
+
+  if (state === 'input-available' || state === 'input-streaming') {
+    return (
+      <div className="flex items-center gap-2 text-xs text-amber-400/70 font-code bg-stone-800/30 rounded px-3 py-2">
+        <Wrench className="w-3 h-3" />
+        <span>Using tool: {toolName}</span>
+      </div>
+    );
+  }
+
+  if (state === 'output-available') {
+    const hasError = output && typeof output === 'object' && 'error' in output;
+    return (
+      <div className={`flex items-center gap-2 text-xs font-code rounded px-3 py-2 ${
+        hasError ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'
+      }`}>
+        {hasError ? (
+          <XCircle className="w-3 h-3" />
+        ) : (
+          <CheckCircle className="w-3 h-3" />
+        )}
+        <span>{toolName} completed</span>
+      </div>
+    );
+  }
+
+  return null;
 }

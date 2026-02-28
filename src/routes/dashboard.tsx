@@ -3,8 +3,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChatTab } from '@/components/dashboard/ChatTab'
 import { FilesTab } from '@/components/dashboard/FilesTab'
 import { TasksTab } from '@/components/dashboard/TasksTab'
+import { SkillsTab } from '@/components/dashboard/SkillsTab'
+import { TerminalTab } from '@/components/dashboard/TerminalTab'
 import { SettingsTab } from '@/components/dashboard/SettingsTab'
-import { MessageSquare, FolderOpen, CheckSquare, Settings, Terminal } from 'lucide-react'
+import { MessageSquare, FolderOpen, CheckSquare, Puzzle, Settings, Terminal } from 'lucide-react'
 
 export const Route = createFileRoute('/dashboard')({
   component: Dashboard,
@@ -43,7 +45,7 @@ function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="chat" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[500px] glass-panel p-1 gap-1">
+          <TabsList className="grid w-full grid-cols-6 lg:w-[700px] glass-panel p-1 gap-1">
             <TabsTrigger
               value="chat"
               className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
@@ -66,6 +68,20 @@ function Dashboard() {
               <span className="hidden sm:inline">TASKS</span>
             </TabsTrigger>
             <TabsTrigger
+              value="skills"
+              className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
+            >
+              <Puzzle className="w-4 h-4" />
+              <span className="hidden sm:inline">SKILLS</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="terminal"
+              className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
+            >
+              <Terminal className="w-4 h-4" />
+              <span className="hidden sm:inline">TERMINAL</span>
+            </TabsTrigger>
+            <TabsTrigger
               value="settings"
               className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
             >
@@ -85,6 +101,14 @@ function Dashboard() {
 
             <TabsContent value="tasks" className="m-0">
               <TasksTab />
+            </TabsContent>
+
+            <TabsContent value="skills" className="m-0">
+              <SkillsTab />
+            </TabsContent>
+
+            <TabsContent value="terminal" className="m-0">
+              <TerminalTab />
             </TabsContent>
 
             <TabsContent value="settings" className="m-0">

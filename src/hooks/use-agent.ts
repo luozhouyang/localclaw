@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import type { UIMessage, TextUIPart, DynamicToolUIPart } from 'ai';
 import { agentLoop } from '@/agent/loop';
-import { generateId } from '@/lib/utils';
+import { generateId } from '@/lib/chat-utils';
 
 interface UseAgentOptions {
   provider: {
@@ -147,7 +147,7 @@ export function useAgent(options: UseAgentOptions): UseAgentReturn {
                 const existingMsg = currentAssistantMsgRef.current;
                 const updatedParts = existingMsg.parts.map(part => {
                   if (part.type === 'dynamic-tool' &&
-                      part.toolCallId === event.callId) {
+                    part.toolCallId === event.callId) {
                     return {
                       type: 'dynamic-tool' as const,
                       toolName: event.name,
