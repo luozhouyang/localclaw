@@ -7,6 +7,8 @@ import { SkillsTab } from '@/components/dashboard/SkillsTab'
 import { TerminalTab } from '@/components/dashboard/TerminalTab'
 import { SettingsTab } from '@/components/dashboard/SettingsTab'
 import { MessageSquare, FolderOpen, CheckSquare, Puzzle, Settings, Terminal } from 'lucide-react'
+import { useEffect } from 'react'
+import { initializeFilesystem } from '@/config/agent-fs'
 
 export const Route = createFileRoute('/dashboard')({
   component: Dashboard,
@@ -14,6 +16,11 @@ export const Route = createFileRoute('/dashboard')({
 })
 
 function Dashboard() {
+  // Initialize filesystem on mount
+  useEffect(() => {
+    initializeFilesystem().catch(console.error)
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#0D0D0D]">
       {/* Header with glass effect */}

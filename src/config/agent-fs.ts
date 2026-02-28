@@ -61,3 +61,14 @@ export const resetFilesystems = () => {
   bashFs = null;
   initPromise = null;
 };
+
+// Initialize filesystem with chat support
+export async function initializeFilesystem(): Promise<AgentFSCore> {
+  const fs = await getSystemStorage();
+
+  // Initialize chat storage structure
+  const { threadManager } = await import('@/chat/thread-manager');
+  await threadManager.initialize();
+
+  return fs;
+}
