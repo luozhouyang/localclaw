@@ -6,7 +6,6 @@ import {
   Lightbulb,
   CheckSquare,
   AlertCircle,
-  RotateCcw,
   User,
   FolderGit2,
   MessageSquare,

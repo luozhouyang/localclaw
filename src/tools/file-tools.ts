@@ -1,6 +1,11 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { getAgentStorage } from '@/config/agent-fs';
+
+// Lazy load filesystem (client-side only)
+async function getStorage() {
+  const { getAgentStorage } = await import('@/config/agent-fs');
+  return getAgentStorage();
+}
 
 /**
  * File-related tools for the agent
@@ -16,7 +21,7 @@ export const readFileTool = tool({
     limit: z.number().optional().describe('Maximum number of lines to read'),
   }),
   execute: async ({ path, offset, limit }) => {
-    const storage = await getAgentStorage();
+    const storage = await getStorage();
     let content = await storage.fs.readFile(path, 'utf-8');
 
     if (offset !== undefined || limit !== undefined) {
@@ -42,7 +47,7 @@ export const writeFileTool = tool({
     content: z.string().describe('Content to write to the file'),
   }),
   execute: async ({ path, content }) => {
-    const storage = await getAgentStorage();
+    const storage = await getStorage();
     const existed = await storage.fs.access(path).then(() => true).catch(() => false);
 
     await storage.fs.writeFile(path, content);
@@ -67,7 +72,7 @@ export const editFileTool = tool({
     })).describe('Array of search/replace operations to apply in order'),
   }),
   execute: async ({ path, edits }) => {
-    const storage = await getAgentStorage();
+    const storage = await getStorage();
     let content = await storage.fs.readFile(path, 'utf-8');
     const applied: Array<{ oldText: string; newText: string; success: boolean }> = [];
 
@@ -100,7 +105,7 @@ export const listFilesTool = tool({
     recursive: z.boolean().optional().describe('List files recursively in subdirectories'),
   }),
   execute: async ({ path, recursive }) => {
-    const storage = await getAgentStorage();
+    const storage = await getStorage();
 
     async function listDir(dirPath: string, depth = 0): Promise<Array<{ name: string; type: 'file' | 'directory'; depth: number }>> {
       const entries = await storage.fs.readdir(dirPath);

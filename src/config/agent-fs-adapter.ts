@@ -1,16 +1,71 @@
 import type { AgentFSCore } from 'node_modules/agentfs-sdk/dist/agentfs';
-import type {
-  IFileSystem,
-  FsStat,
-  DirentEntry,
-  ReadFileOptions,
-  WriteFileOptions,
-  MkdirOptions,
-  RmOptions,
-  CpOptions,
-  FileContent,
-  BufferEncoding,
-} from 'just-bash';
+// BufferEncoding type
+type BufferEncoding = 'utf8' | 'utf-8' | 'ascii' | 'base64' | 'hex' | 'binary' | 'latin1';
+
+// Local type definitions for just-bash compatibility
+interface ReadFileOptions {
+  encoding?: BufferEncoding;
+}
+
+interface WriteFileOptions {
+  encoding?: BufferEncoding;
+}
+
+interface MkdirOptions {
+  recursive?: boolean;
+}
+
+interface RmOptions {
+  force?: boolean;
+  recursive?: boolean;
+}
+
+interface CpOptions {
+  recursive?: boolean;
+}
+
+type FileContent = string | Uint8Array;
+
+interface FsStat {
+  isFile: boolean;
+  isDirectory: boolean;
+  isSymbolicLink: boolean;
+  mode: number;
+  size: number;
+  mtime: Date;
+}
+
+interface DirentEntry {
+  name: string;
+  isFile: boolean;
+  isDirectory: boolean;
+  isSymbolicLink: boolean;
+}
+
+// IFileSystem interface matching just-bash expectations
+interface IFileSystem {
+  readFile(path: string, options?: ReadFileOptions | BufferEncoding): Promise<string>;
+  readFileBuffer(path: string): Promise<Uint8Array>;
+  writeFile(path: string, content: FileContent, options?: WriteFileOptions | BufferEncoding): Promise<void>;
+  appendFile(path: string, content: FileContent, options?: WriteFileOptions | BufferEncoding): Promise<void>;
+  exists(path: string): Promise<boolean>;
+  stat(path: string): Promise<FsStat>;
+  lstat(path: string): Promise<FsStat>;
+  mkdir(path: string, options?: MkdirOptions): Promise<void>;
+  readdir(path: string): Promise<string[]>;
+  readdirWithFileTypes(path: string): Promise<DirentEntry[]>;
+  rm(path: string, options?: RmOptions): Promise<void>;
+  cp(src: string, dest: string, options?: CpOptions): Promise<void>;
+  mv(src: string, dest: string): Promise<void>;
+  resolvePath(base: string, relPath: string): string;
+  getAllPaths(): string[];
+  chmod(path: string, mode: number): Promise<void>;
+  symlink(target: string, linkPath: string): Promise<void>;
+  link(existingPath: string, newPath: string): Promise<void>;
+  readlink(path: string): Promise<string>;
+  realpath(path: string): Promise<string>;
+  utimes(path: string, atime: Date, mtime: Date): Promise<void>;
+}
 
 /**
  * Adapter that wraps AgentFS to implement the IFileSystem interface for just-bash

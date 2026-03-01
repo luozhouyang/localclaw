@@ -1,8 +1,13 @@
-import { getSystemStorage } from '@/config/agent-fs';
 import type { Skill, SkillManifest, SkillRegistry } from './types';
 
 const SKILLS_DIR = '/skills';
 const REGISTRY_KEY = 'skills:registry';
+
+// Lazy load agent-fs (client-side only)
+async function getStorage() {
+  const { getSystemStorage } = await import('@/config/agent-fs');
+  return getSystemStorage();
+}
 
 /**
  * Parse SKILL.md content to extract metadata
@@ -42,7 +47,7 @@ function parseSkillMarkdown(content: string, id: string): Partial<Skill> {
  * Get skills registry from storage
  */
 async function getRegistry(): Promise<SkillRegistry> {
-  const storage = await getSystemStorage();
+  const storage = await getStorage();
   const registry = await storage.kv.get<SkillRegistry>(REGISTRY_KEY);
   return registry || { skills: [], activeSkillIds: [] };
 }
@@ -51,7 +56,7 @@ async function getRegistry(): Promise<SkillRegistry> {
  * Save skills registry to storage
  */
 async function saveRegistry(registry: SkillRegistry): Promise<void> {
-  const storage = await getSystemStorage();
+  const storage = await getStorage();
   await storage.kv.set(REGISTRY_KEY, registry);
 }
 
@@ -59,7 +64,7 @@ async function saveRegistry(registry: SkillRegistry): Promise<void> {
  * Load installed skills from AgentFS
  */
 export async function loadInstalledSkills(): Promise<Skill[]> {
-  const storage = await getSystemStorage();
+  const storage = await getStorage();
   const skills: Skill[] = [];
 
   try {
@@ -122,7 +127,7 @@ export async function loadInstalledSkills(): Promise<Skill[]> {
  * Install a skill from a URL
  */
 export async function installSkillFromUrl(url: string, id?: string): Promise<Skill> {
-  const storage = await getSystemStorage();
+  const storage = await getStorage();
 
   try {
     // Fetch SKILL.md from URL
@@ -212,7 +217,7 @@ export async function installSkillFromGitHub(
  * Uninstall a skill
  */
 export async function uninstallSkill(skillId: string): Promise<void> {
-  const storage = await getSystemStorage();
+  const storage = await getStorage();
 
   try {
     // Remove skill directory

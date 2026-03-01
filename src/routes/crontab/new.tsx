@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useCallback } from 'react'
-import { useCronScheduler } from '@/hooks/useCronScheduler'
+import { useCronScheduler } from '@/hooks/use-cron-scheduler'
 import { CronParser, type NewCronJob, type MissedTaskStrategy } from '@/crontab'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

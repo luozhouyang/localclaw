@@ -1,13 +1,18 @@
-import { getSystemStorage } from '@/config/agent-fs';
 import type { TaskInstance, TaskStatus } from './types';
 
 const TASKS_DIR = '/tasks/instances';
 const QUEUE_FILE = '/tasks/queue/pending.json';
 const RUNNING_FILE = '/tasks/queue/running.json';
 
+// Lazy load agent-fs (client-side only)
+async function getFS() {
+  const { getSystemStorage } = await import('@/config/agent-fs');
+  return getSystemStorage();
+}
+
 export class TaskStore {
   private async ensureDir(path: string): Promise<void> {
-    const fs = await getSystemStorage();
+    const fs = await getFS();
     try {
       await fs.fs.mkdir(path);
     } catch {
@@ -16,13 +21,13 @@ export class TaskStore {
   }
 
   private async writeJSON(path: string, data: unknown): Promise<void> {
-    const fs = await getSystemStorage();
+    const fs = await getFS();
     await this.ensureDir(path.substring(0, path.lastIndexOf('/')));
     await fs.fs.writeFile(path, JSON.stringify(data, null, 2));
   }
 
   private async readJSON<T>(path: string): Promise<T | null> {
-    const fs = await getSystemStorage();
+    const fs = await getFS();
     try {
       const content = await fs.fs.readFile(path, 'utf-8');
       return JSON.parse(content) as T;
@@ -42,7 +47,7 @@ export class TaskStore {
   }
 
   async deleteTask(id: string): Promise<void> {
-    const fs = await getSystemStorage();
+    const fs = await getFS();
     const path = `${TASKS_DIR}/${id}.json`;
     try {
       await fs.fs.rm(path, { force: true });
@@ -52,7 +57,7 @@ export class TaskStore {
   }
 
   async listTasks(): Promise<TaskInstance[]> {
-    const fs = await getSystemStorage();
+    const fs = await getFS();
     await this.ensureDir(TASKS_DIR);
 
     try {

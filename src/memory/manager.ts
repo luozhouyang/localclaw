@@ -1,4 +1,3 @@
-import { getSystemStorage } from '@/config/agent-fs';
 import type {
   ThreadSummary,
   ThreadFacts,
@@ -7,12 +6,12 @@ import type {
   UserRelationship,
   ProjectMemory,
   AssembledMemoryContext,
-  FactType,
 } from './types';
 import { MEMORY_PATHS } from './types';
 
-// Helper to get filesystem instance
+// Helper to get filesystem instance (client-side only)
 async function getFS() {
+  const { getSystemStorage } = await import('@/config/agent-fs');
   return getSystemStorage();
 }
 
@@ -219,7 +218,7 @@ export async function addUserSnippet(
 }
 
 // User Relationship
-export async function getUserRelationship(userId = 'default'): Promise<UserRelationship | null> {
+export async function getUserRelationship(_userId = 'default'): Promise<UserRelationship | null> {
   const fs = await getFS();
   try {
     const content = await fs.fs.readFile(MEMORY_PATHS.userRelationship, 'utf-8');

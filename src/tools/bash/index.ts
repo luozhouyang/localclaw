@@ -1,5 +1,10 @@
 import { Bash } from 'just-bash';
-import { getBashFilesystem } from '@/config/agent-fs';
+
+// Lazy import filesystem (client-side only)
+async function getBashFS() {
+  const { getBashFilesystem } = await import('@/config/agent-fs');
+  return getBashFilesystem();
+}
 /**
  * Bash execution options
  */
@@ -28,7 +33,7 @@ let bashInstance: Bash | null = null;
  */
 async function getBashInstance(): Promise<Bash> {
   if (!bashInstance) {
-    const fs = await getBashFilesystem();
+    const fs = await getBashFS();
     bashInstance = new Bash({
       fs,
       cwd: '/home/user',

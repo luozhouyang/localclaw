@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useCronScheduler } from '@/hooks/useCronScheduler'
+import { useCronScheduler } from '@/hooks/use-cron-scheduler'
 import { CronParser, CRON_PRESET_DESCRIPTIONS, type CronJob } from '@/crontab'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Clock,
@@ -34,7 +34,6 @@ function CrontabPage() {
     jobs,
     isInitialized,
     stats,
-    addJob,
     removeJob,
     pauseJob,
     resumeJob,

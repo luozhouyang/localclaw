@@ -1,10 +1,10 @@
-import { getSystemStorage } from '@/config/agent-fs';
 import type { UIMessage } from 'ai';
 import type { Thread, Channel } from './types';
 import { CHAT_PATHS } from './types';
 
 class ThreadManager {
   private async getFS() {
+    const { getSystemStorage } = await import('@/config/agent-fs');
     return getSystemStorage();
   }
 
