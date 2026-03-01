@@ -9,8 +9,13 @@ import { SettingsTab } from '@/components/dashboard/SettingsTab'
 import { MemoryTab } from '@/components/dashboard/MemoryTab'
 import { MessageSquare, FolderOpen, CheckSquare, Puzzle, Settings, Terminal, Brain } from 'lucide-react'
 import { useEffect } from 'react'
-import { initializeFilesystem } from '@/config/agent-fs'
 import { taskScheduler } from '@/tasks'
+
+// Dynamic imports (client-side only)
+async function initFilesystem() {
+  const { initializeFilesystem } = await import('@/config/agent-fs')
+  return initializeFilesystem()
+}
 
 // Dynamic import for task definitions - client-side only
 let taskDefinitionsLoaded = false
@@ -30,7 +35,7 @@ function Dashboard() {
   useEffect(() => {
     const init = async () => {
       try {
-        await initializeFilesystem()
+        await initFilesystem()
         // Load task definitions dynamically (client-side only)
         await loadTaskDefinitions()
         await taskScheduler.initialize()

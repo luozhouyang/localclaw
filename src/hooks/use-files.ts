@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getAgentStorage } from '@/config/agent-fs';
+
+// Lazy import filesystem (client-side only)
+async function getStorage() {
+  const { getAgentStorage } = await import('@/config/agent-fs');
+  return getAgentStorage();
+}
 
 export interface FileItem {
   name: string;
@@ -37,7 +42,7 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
     setError(null);
 
     try {
-      const agent = await getAgentStorage();
+      const agent = await getStorage();
 
       // Ensure directory exists (recursively create parent directories)
       try {
@@ -113,7 +118,7 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
   const createDirectory = useCallback(async (name: string) => {
     setIsLoading(true);
     try {
-      const agent = await getAgentStorage();
+      const agent = await getStorage();
       const newPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
       await agent.fs.mkdir(newPath);
       await listFiles();
@@ -128,7 +133,7 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
   const deleteItem = useCallback(async (name: string) => {
     setIsLoading(true);
     try {
-      const agent = await getAgentStorage();
+      const agent = await getStorage();
       const targetPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
       const stats = await agent.fs.stat(targetPath);
 
@@ -150,7 +155,7 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
   const renameItem = useCallback(async (oldName: string, newName: string) => {
     setIsLoading(true);
     try {
-      const agent = await getAgentStorage();
+      const agent = await getStorage();
       const oldPath = `${currentPath}/${oldName}`.replace(/\/+/g, '/');
       const newPath = `${currentPath}/${newName}`.replace(/\/+/g, '/');
       await agent.fs.rename(oldPath, newPath);
@@ -166,7 +171,7 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
   const uploadFile = useCallback(async (file: File, targetName?: string) => {
     setIsLoading(true);
     try {
-      const agent = await getAgentStorage();
+      const agent = await getStorage();
       const name = targetName || file.name;
       const targetPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
 
@@ -183,7 +188,7 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
 
   const readFile = useCallback(async (name: string): Promise<string> => {
     try {
-      const agent = await getAgentStorage();
+      const agent = await getStorage();
       const filePath = `${currentPath}/${name}`.replace(/\/+/g, '/');
       return await agent.fs.readFile(filePath, 'utf-8');
     } catch (err) {
@@ -195,7 +200,7 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
   const writeFile = useCallback(async (name: string, content: string) => {
     setIsLoading(true);
     try {
-      const agent = await getAgentStorage();
+      const agent = await getStorage();
       const filePath = `${currentPath}/${name}`.replace(/\/+/g, '/');
       await agent.fs.writeFile(filePath, content);
       await listFiles();
