@@ -3,20 +3,16 @@ import {
   CheckSquare,
   Plus,
   Trash2,
-  Edit2,
   Play,
-  Check,
-  X,
   RotateCcw,
   AlertCircle,
   Calendar,
-  Tag,
   Loader2,
   Filter,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -33,99 +29,99 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useTasks } from '@/hooks/use-tasks';
-import type { Task } from '@/types/task';
+import { useAsyncTasks } from '@/hooks/use-async-tasks';
+import type { TaskInstance, TaskPriority } from '@/tasks/types';
 
 const statusColors = {
   pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  in_progress: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  queued: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  running: 'bg-blue-500/20 text-blue-400 border-blue-500/30 animate-pulse',
   completed: 'bg-green-500/20 text-green-400 border-green-500/30',
+  failed: 'bg-red-500/20 text-red-400 border-red-500/30',
   cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
+  interrupted: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
 };
 
-const priorityColors = {
-  low: 'bg-stone-500/20 text-stone-400',
-  medium: 'bg-orange-500/20 text-orange-400',
-  high: 'bg-red-500/20 text-red-400',
-};
+function ProgressBar({ progress }: { progress: TaskInstance['progress'] }) {
+  return (
+    <div className="mt-2">
+      <div className="flex justify-between text-xs text-stone-400 mb-1">
+        <span>{progress.message || 'Processing...'}</span>
+        <span>{progress.percent}%</span>
+      </div>
+      <div className="h-1.5 bg-stone-700 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-orange-500 transition-all duration-300"
+          style={{ width: `${progress.percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export function TasksTab() {
   const {
-    tasks,
+    tasks: asyncTasks,
     isLoading,
     error,
     createTask,
-    updateTask,
-    deleteTask,
-    completeTask,
-    startTask,
     cancelTask,
-    getTaskStats,
+    resumeTask,
+    deleteTask,
     refresh,
-  } = useTasks();
+  } = useAsyncTasks();
 
   const [showNewTaskDialog, setShowNewTaskDialog] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
-  const [filter, setFilter] = useState<Task['status'] | 'all'>('all');
+  const [deleteTarget, setDeleteTarget] = useState<TaskInstance | null>(null);
+  const [filter, setFilter] = useState<TaskInstance['status'] | 'all'>('all');
 
   // New task form state
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskDescription, setNewTaskDescription] = useState('');
-  const [newTaskPriority, setNewTaskPriority] = useState<Task['priority']>('medium');
-  const [newTaskTags, setNewTaskTags] = useState('');
+  const [newTaskType, setNewTaskType] = useState('');
+  const [newTaskInput, setNewTaskInput] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('normal');
 
-  const stats = getTaskStats();
+  const stats = {
+    total: asyncTasks.length,
+    completed: asyncTasks.filter((t) => t.status === 'completed').length,
+    inProgress: asyncTasks.filter((t) => t.status === 'running').length,
+  };
 
   const filteredTasks = filter === 'all'
-    ? tasks
-    : tasks.filter((t) => t.status === filter);
+    ? asyncTasks
+    : asyncTasks.filter((t) => t.status === filter);
 
-  // Sort by priority and then by updatedAt
+  // Sort by status (running first) and then by createdAt
   const sortedTasks = [...filteredTasks].sort((a, b) => {
-    const priorityWeight = { high: 3, medium: 2, low: 1 };
-    if (priorityWeight[a.priority] !== priorityWeight[b.priority]) {
-      return priorityWeight[b.priority] - priorityWeight[a.priority];
-    }
-    return b.updatedAt - a.updatedAt;
+    if (a.status === 'running' && b.status !== 'running') return -1;
+    if (b.status === 'running' && a.status !== 'running') return 1;
+    return b.createdAt - a.createdAt;
   });
 
   const handleCreateTask = async () => {
-    if (!newTaskTitle.trim()) return;
+    if (!newTaskType.trim()) return;
 
     try {
-      await createTask({
-        title: newTaskTitle.trim(),
-        description: newTaskDescription.trim() || undefined,
-        status: 'pending',
+      let input: unknown = {};
+      if (newTaskInput.trim()) {
+        try {
+          input = JSON.parse(newTaskInput);
+        } catch {
+          input = { text: newTaskInput.trim() };
+        }
+      }
+
+      await createTask(newTaskType.trim(), input, {
         priority: newTaskPriority,
-        tags: newTaskTags.split(',').map((t) => t.trim()).filter(Boolean),
+        autoStart: true,
       });
 
       // Reset form
-      setNewTaskTitle('');
-      setNewTaskDescription('');
-      setNewTaskPriority('medium');
-      setNewTaskTags('');
+      setNewTaskType('');
+      setNewTaskInput('');
+      setNewTaskPriority('normal');
       setShowNewTaskDialog(false);
     } catch (err) {
       console.error('Failed to create task:', err);
-    }
-  };
-
-  const handleUpdateTask = async () => {
-    if (!editingTask) return;
-
-    try {
-      await updateTask(editingTask.id, {
-        title: editingTask.title,
-        description: editingTask.description,
-        priority: editingTask.priority,
-        tags: editingTask.tags,
-      });
-      setEditingTask(null);
-    } catch (err) {
-      console.error('Failed to update task:', err);
     }
   };
 
@@ -157,7 +153,7 @@ export function TasksTab() {
           <div>
             <h2 className="font-display text-lg font-bold text-white">TASK MANAGER</h2>
             <p className="text-xs text-orange-400/70 font-code">
-              {stats.completed}/{stats.total} completed • {stats.inProgress} in progress
+              {stats.completed}/{stats.total} completed • {stats.inProgress} running
             </p>
           </div>
         </div>
@@ -187,8 +183,8 @@ export function TasksTab() {
       {/* Filter */}
       <div className="flex items-center gap-2 px-6 py-3 border-b border-orange-500/10 bg-stone-900/30">
         <Filter className="w-4 h-4 text-stone-500" />
-        <div className="flex gap-1">
-          {(['all', 'pending', 'in_progress', 'completed', 'cancelled'] as const).map((status) => (
+        <div className="flex gap-1 flex-wrap">
+          {(['all', 'pending', 'queued', 'running', 'completed', 'failed', 'cancelled', 'interrupted'] as const).map((status) => (
             <Button
               key={status}
               variant={filter === status ? 'default' : 'ghost'}
@@ -200,7 +196,7 @@ export function TasksTab() {
                   : 'text-stone-400 hover:text-orange-400'
               }`}
             >
-              {status === 'all' ? 'All' : status.replace('_', ' ')}
+              {status === 'all' ? 'All' : status}
             </Button>
           ))}
         </div>
@@ -227,7 +223,7 @@ export function TasksTab() {
           <div className="flex flex-col items-center justify-center h-full text-stone-500">
             <CheckSquare className="w-16 h-16 mb-4 opacity-30" />
             <p className="font-code text-sm">
-              {filter === 'all' ? 'No tasks yet' : `No ${filter.replace('_', ' ')} tasks`}
+              {filter === 'all' ? 'No tasks yet' : `No ${filter} tasks`}
             </p>
             <p className="text-xs mt-2">
               {filter === 'all' ? 'Create a task to get started' : 'Try a different filter'}
@@ -246,7 +242,7 @@ export function TasksTab() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3
                         className={`font-medium text-sm ${
                           task.status === 'completed'
@@ -254,37 +250,46 @@ export function TasksTab() {
                             : 'text-white'
                         }`}
                       >
-                        {task.title}
+                        {task.type}
                       </h3>
                       <Badge
                         variant="outline"
                         className={`text-xs ${statusColors[task.status]}`}
                       >
-                        {task.status.replace('_', ' ')}
-                      </Badge>
-                      <Badge
-                        variant="secondary"
-                        className={`text-xs ${priorityColors[task.priority]}`}
-                      >
-                        {task.priority}
+                        {task.status}
                       </Badge>
                     </div>
 
-                    {task.description && (
+                    {/* Show task input summary */}
+                    {Boolean(task.input && typeof task.input === 'object' && task.input !== null) && (
                       <p className="text-sm text-stone-400 mb-2 line-clamp-2">
-                        {task.description}
+                        {(() => {
+                          const input = task.input as Record<string, unknown>;
+                          const inputStr = JSON.stringify(input);
+                          return inputStr.slice(0, 100) + (inputStr.length > 100 ? '...' : '');
+                        })()}
                       </p>
                     )}
 
-                    <div className="flex items-center gap-3 text-xs text-stone-500">
+                    {(task.status === 'running' || task.status === 'queued') && task.progress && (
+                      <ProgressBar progress={task.progress} />
+                    )}
+
+                    {/* Error display */}
+                    {task.error && (
+                      <p className="text-xs text-red-400 mt-2 line-clamp-2">
+                        Error: {task.error.message}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-3 text-xs text-stone-500 mt-2">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {formatDate(task.updatedAt)}
+                        {formatDate(task.createdAt)}
                       </span>
-                      {task.tags && task.tags.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Tag className="w-3 h-3" />
-                          {task.tags.join(', ')}
+                      {task.retryCount > 0 && (
+                        <span className="text-orange-400">
+                          {task.retryCount} retries
                         </span>
                       )}
                     </div>
@@ -296,7 +301,7 @@ export function TasksTab() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => startTask(task.id)}
+                        onClick={() => resumeTask(task.id)}
                         className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
                         title="Start"
                       >
@@ -304,43 +309,31 @@ export function TasksTab() {
                       </Button>
                     )}
 
-                    {task.status === 'in_progress' && (
+                    {task.status === 'interrupted' && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => completeTask(task.id)}
-                        className="text-green-400 hover:text-green-300 hover:bg-green-500/10"
-                        title="Complete"
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                    )}
-
-                    {task.status !== 'completed' && task.status !== 'cancelled' && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditingTask(task)}
-                        className="text-stone-400 hover:text-orange-400"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                    )}
-
-                    {(task.status === 'completed' || task.status === 'cancelled') && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => updateTask(task.id, { status: 'pending' })}
-                        className="text-stone-400 hover:text-orange-400"
-                        title="Reopen"
+                        onClick={() => resumeTask(task.id)}
+                        className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+                        title="Resume"
                       >
                         <RotateCcw className="w-4 h-4" />
                       </Button>
                     )}
 
-                    {task.status !== 'cancelled' && task.status !== 'completed' && (
+                    {(task.status === 'completed' || task.status === 'cancelled' || task.status === 'failed') && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => resumeTask(task.id)}
+                        className="text-stone-400 hover:text-orange-400"
+                        title="Retry"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </Button>
+                    )}
+
+                    {task.status !== 'cancelled' && task.status !== 'completed' && task.status !== 'failed' && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -375,41 +368,36 @@ export function TasksTab() {
           <DialogHeader>
             <DialogTitle className="text-white">Create New Task</DialogTitle>
             <DialogDescription className="text-stone-400">
-              Add a new task to track your work
+              Schedule a new async task
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Input
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              placeholder="Task title"
+              value={newTaskType}
+              onChange={(e) => setNewTaskType(e.target.value)}
+              placeholder="Task type (e.g., 'file-processor')"
               className="bg-stone-800 border-orange-500/30 text-white"
             />
-            <Textarea
-              value={newTaskDescription}
-              onChange={(e) => setNewTaskDescription(e.target.value)}
-              placeholder="Description (optional)"
+            <Input
+              value={newTaskInput}
+              onChange={(e) => setNewTaskInput(e.target.value)}
+              placeholder="Input (JSON or text)"
               className="bg-stone-800 border-orange-500/30 text-white"
-              rows={3}
             />
-            <div className="flex gap-2">
-              <Select value={newTaskPriority} onValueChange={(v) => setNewTaskPriority(v as Task['priority'])}>
-                <SelectTrigger className="bg-stone-800 border-orange-500/30 text-white">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent className="bg-stone-900 border-orange-500/20">
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                value={newTaskTags}
-                onChange={(e) => setNewTaskTags(e.target.value)}
-                placeholder="Tags (comma separated)"
-                className="bg-stone-800 border-orange-500/30 text-white flex-1"
-              />
-            </div>
+            <Select
+              value={newTaskPriority}
+              onValueChange={(v) => setNewTaskPriority(v as TaskPriority)}
+            >
+              <SelectTrigger className="bg-stone-800 border-orange-500/30 text-white">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent className="bg-stone-900 border-orange-500/20">
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewTaskDialog(false)}>
@@ -417,57 +405,10 @@ export function TasksTab() {
             </Button>
             <Button
               onClick={handleCreateTask}
-              disabled={!newTaskTitle.trim()}
+              disabled={!newTaskType.trim()}
               className="bg-orange-500 hover:bg-orange-400"
             >
               Create Task
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Task Dialog */}
-      <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
-        <DialogContent className="bg-stone-900 border-orange-500/20">
-          <DialogHeader>
-            <DialogTitle className="text-white">Edit Task</DialogTitle>
-          </DialogHeader>
-          {editingTask && (
-            <div className="space-y-4">
-              <Input
-                value={editingTask.title}
-                onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-                placeholder="Task title"
-                className="bg-stone-800 border-orange-500/30 text-white"
-              />
-              <Textarea
-                value={editingTask.description || ''}
-                onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
-                placeholder="Description"
-                className="bg-stone-800 border-orange-500/30 text-white"
-                rows={3}
-              />
-              <Select
-                value={editingTask.priority}
-                onValueChange={(v) => setEditingTask({ ...editingTask, priority: v as Task['priority'] })}
-              >
-                <SelectTrigger className="bg-stone-800 border-orange-500/30 text-white">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent className="bg-stone-900 border-orange-500/20">
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingTask(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateTask} className="bg-orange-500 hover:bg-orange-400">
-              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -479,7 +420,7 @@ export function TasksTab() {
           <DialogHeader>
             <DialogTitle className="text-white">Confirm Delete</DialogTitle>
             <DialogDescription className="text-stone-400">
-              Are you sure you want to delete "{deleteTarget?.title}"? This action cannot be undone.
+              Are you sure you want to delete task &quot;{deleteTarget?.type}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

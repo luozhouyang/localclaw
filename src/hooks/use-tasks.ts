@@ -1,8 +1,35 @@
-import { getSystemStorage } from '@/config/agent-fs';
-import type { Task, TaskFilter } from '@/types/task';
 import { useCallback, useEffect, useState } from 'react';
+import { useAsyncTasks } from './use-async-tasks';
+import type { Task, TaskFilter } from '@/types/task';
+import type { TaskInstance, TaskPriority } from '@/tasks/types';
 
-const TASKS_KEY = 'tasks:all';
+// Convert new TaskInstance to legacy Task format for UI compatibility
+function toLegacyTask(instance: TaskInstance): Task {
+  const priorityMap: Record<string, Task['priority']> = {
+    low: 'low',
+    normal: 'medium',
+    high: 'high',
+    critical: 'high',
+  };
+
+  return {
+    id: instance.id,
+    title: (instance.input as { title?: string })?.title || instance.type,
+    description: instance.progress.message || instance.type,
+    status: instance.status === 'running' || instance.status === 'queued'
+      ? 'in_progress'
+      : instance.status === 'interrupted'
+      ? 'pending'
+      : instance.status === 'failed'
+      ? 'cancelled'
+      : instance.status,
+    priority: priorityMap[instance.progress.message || 'normal'] || 'medium',
+    createdAt: instance.createdAt,
+    updatedAt: instance.progress.updatedAt || instance.createdAt,
+    completedAt: instance.completedAt,
+    tags: [instance.type],
+  };
+}
 
 interface UseTasksReturn {
   tasks: Task[];
@@ -20,117 +47,97 @@ interface UseTasksReturn {
 }
 
 export function useTasks(): UseTasksReturn {
+  const {
+    tasks: asyncTasks,
+    isLoading,
+    error,
+    createTask: createAsyncTask,
+    deleteTask: deleteAsyncTask,
+    cancelTask: cancelAsyncTask,
+    resumeTask,
+    refresh,
+  } = useAsyncTasks();
+
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadTasks = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  useEffect(() => {
+    setTasks(asyncTasks.map(toLegacyTask));
+  }, [asyncTasks]);
 
-    try {
-      const agent = await getSystemStorage();
-      const stored = await agent.kv.get<Task[]>(TASKS_KEY);
-      setTasks(stored || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load tasks');
-      console.error('[useTasks] Error loading tasks:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const saveTasks = useCallback(async (newTasks: Task[]) => {
-    const agent = await getSystemStorage();
-    await agent.kv.set(TASKS_KEY, newTasks);
-  }, []);
-
-  const createTask = useCallback(async (
-    taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<Task> => {
-    setIsLoading(true);
-    try {
-      const newTask: Task = {
-        ...taskData,
-        id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+  const createTask = useCallback(
+    async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task> => {
+      const priorityMap: Record<Task['priority'], TaskPriority> = {
+        low: 'low',
+        medium: 'normal',
+        high: 'high',
       };
 
-      const updatedTasks = [...tasks, newTask];
-      await saveTasks(updatedTasks);
-      setTasks(updatedTasks);
-      return newTask;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create task');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tasks, saveTasks]);
-
-  const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
-    setIsLoading(true);
-    try {
-      const updatedTasks = tasks.map((task) =>
-        task.id === id
-          ? { ...task, ...updates, updatedAt: Date.now() }
-          : task
+      const instance = await createAsyncTask(
+        'manual_task',
+        {
+          title: taskData.title,
+          description: taskData.description,
+        },
+        {
+          priority: priorityMap[taskData.priority],
+          autoStart: false,
+        }
       );
-      await saveTasks(updatedTasks);
-      setTasks(updatedTasks);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update task');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tasks, saveTasks]);
 
-  const deleteTask = useCallback(async (id: string) => {
-    setIsLoading(true);
-    try {
-      const updatedTasks = tasks.filter((task) => task.id !== id);
-      await saveTasks(updatedTasks);
-      setTasks(updatedTasks);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete task');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tasks, saveTasks]);
+      return toLegacyTask(instance);
+    },
+    [createAsyncTask]
+  );
 
-  const completeTask = useCallback(async (id: string) => {
-    await updateTask(id, {
-      status: 'completed',
-      completedAt: Date.now(),
-    });
-  }, [updateTask]);
+  const updateTask = useCallback(
+    async (_id: string, _updates: Partial<Task>): Promise<void> => {
+      console.warn('Task updates not fully supported in async system');
+    },
+    []
+  );
 
-  const startTask = useCallback(async (id: string) => {
-    await updateTask(id, {
-      status: 'in_progress',
-    });
-  }, [updateTask]);
+  const deleteTask = useCallback(
+    async (id: string): Promise<void> => {
+      await deleteAsyncTask(id);
+    },
+    [deleteAsyncTask]
+  );
 
-  const cancelTask = useCallback(async (id: string) => {
-    await updateTask(id, {
-      status: 'cancelled',
-    });
-  }, [updateTask]);
+  const completeTask = useCallback(
+    async (_id: string): Promise<void> => {
+      console.warn('Manual task completion not supported in async system');
+    },
+    []
+  );
 
-  const getFilteredTasks = useCallback((filter: TaskFilter): Task[] => {
-    return tasks.filter((task) => {
-      if (filter.status && task.status !== filter.status) return false;
-      if (filter.priority && task.priority !== filter.priority) return false;
-      if (filter.tags && filter.tags.length > 0) {
-        const taskTags = task.tags || [];
-        if (!filter.tags.some((tag) => taskTags.includes(tag))) return false;
-      }
-      return true;
-    });
-  }, [tasks]);
+  const startTask = useCallback(
+    async (id: string): Promise<void> => {
+      await resumeTask(id);
+    },
+    [resumeTask]
+  );
+
+  const cancelTask = useCallback(
+    async (id: string): Promise<void> => {
+      await cancelAsyncTask(id);
+    },
+    [cancelAsyncTask]
+  );
+
+  const getFilteredTasks = useCallback(
+    (filter: TaskFilter): Task[] => {
+      return tasks.filter((task) => {
+        if (filter.status && task.status !== filter.status) return false;
+        if (filter.priority && task.priority !== filter.priority) return false;
+        if (filter.tags && filter.tags.length > 0) {
+          const taskTags = task.tags || [];
+          if (!filter.tags.some((tag) => taskTags.includes(tag))) return false;
+        }
+        return true;
+      });
+    },
+    [tasks]
+  );
 
   const getTaskStats = useCallback(() => {
     return {
@@ -140,14 +147,6 @@ export function useTasks(): UseTasksReturn {
       completed: tasks.filter((t) => t.status === 'completed').length,
     };
   }, [tasks]);
-
-  const refresh = useCallback(async () => {
-    await loadTasks();
-  }, [loadTasks]);
-
-  useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
 
   return {
     tasks,

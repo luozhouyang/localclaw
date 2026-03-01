@@ -9,6 +9,8 @@ import { SettingsTab } from '@/components/dashboard/SettingsTab'
 import { MessageSquare, FolderOpen, CheckSquare, Puzzle, Settings, Terminal } from 'lucide-react'
 import { useEffect } from 'react'
 import { initializeFilesystem } from '@/config/agent-fs'
+import { taskScheduler } from '@/tasks'
+import '@/tasks/definitions'
 
 export const Route = createFileRoute('/dashboard')({
   component: Dashboard,
@@ -16,9 +18,18 @@ export const Route = createFileRoute('/dashboard')({
 })
 
 function Dashboard() {
-  // Initialize filesystem on mount
+  // Initialize filesystem and task system on mount
   useEffect(() => {
-    initializeFilesystem().catch(console.error)
+    const init = async () => {
+      try {
+        await initializeFilesystem()
+        await taskScheduler.initialize()
+        console.log('[Dashboard] Task system initialized')
+      } catch (err) {
+        console.error('[Dashboard] Initialization failed:', err)
+      }
+    }
+    init()
   }, [])
 
   return (
