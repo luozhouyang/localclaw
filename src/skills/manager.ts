@@ -1,13 +1,8 @@
+import { getFS, getKV } from '@/lib/file-utils';
 import type { Skill, SkillManifest, SkillRegistry } from './types';
 
 const SKILLS_DIR = '/skills';
 const REGISTRY_KEY = 'skills:registry';
-
-// Lazy load agent-fs (client-side only)
-async function getStorage() {
-  const { getSystemStorage } = await import('@/config/agent-fs');
-  return getSystemStorage();
-}
 
 /**
  * Parse SKILL.md content to extract metadata
@@ -47,8 +42,8 @@ function parseSkillMarkdown(content: string, id: string): Partial<Skill> {
  * Get skills registry from storage
  */
 async function getRegistry(): Promise<SkillRegistry> {
-  const storage = await getStorage();
-  const registry = await storage.kv.get<SkillRegistry>(REGISTRY_KEY);
+  const kv = await getKV();
+  const registry = await kv.get<SkillRegistry>(REGISTRY_KEY);
   return registry || { skills: [], activeSkillIds: [] };
 }
 
@@ -56,40 +51,40 @@ async function getRegistry(): Promise<SkillRegistry> {
  * Save skills registry to storage
  */
 async function saveRegistry(registry: SkillRegistry): Promise<void> {
-  const storage = await getStorage();
-  await storage.kv.set(REGISTRY_KEY, registry);
+  const kv = await getKV();
+  await kv.set(REGISTRY_KEY, registry);
 }
 
 /**
  * Load installed skills from AgentFS
  */
 export async function loadInstalledSkills(): Promise<Skill[]> {
-  const storage = await getStorage();
+  const fs = await getFS();
   const skills: Skill[] = [];
 
   try {
     // Check if skills directory exists
-    await storage.fs.access(SKILLS_DIR);
-    const skillDirs = await storage.fs.readdir(SKILLS_DIR);
+    await fs.access(SKILLS_DIR);
+    const skillDirs = await fs.readdir(SKILLS_DIR);
 
     for (const dir of skillDirs) {
       try {
         const skillPath = `${SKILLS_DIR}/${dir}`;
-        const stat = await storage.fs.stat(skillPath);
+        const stat = await fs.stat(skillPath);
 
-        if (!stat.isDirectory()) continue;
+        if (!stat.isDirectory) continue;
 
         // Read SKILL.md
         const skillMdPath = `${skillPath}/SKILL.md`;
-        await storage.fs.access(skillMdPath);
-        const instructions = await storage.fs.readFile(skillMdPath, 'utf-8');
+        await fs.access(skillMdPath);
+        const instructions = await fs.readFile(skillMdPath, 'utf-8');
 
         // Try to read manifest.json for metadata
         let manifest: Partial<Skill> = {};
         try {
           const manifestPath = `${skillPath}/manifest.json`;
-          await storage.fs.access(manifestPath);
-          const manifestContent = await storage.fs.readFile(manifestPath, 'utf-8');
+          await fs.access(manifestPath);
+          const manifestContent = await fs.readFile(manifestPath, 'utf-8');
           manifest = JSON.parse(manifestContent);
         } catch {
           // No manifest, parse from SKILL.md
@@ -108,8 +103,8 @@ export async function loadInstalledSkills(): Promise<Skill[]> {
           triggers: manifest.triggers || parsed.triggers || [],
           source: 'local',
           isActive: false,
-          installedAt: stat.mtime ? stat.mtime * 1000 : Date.now(),
-          updatedAt: stat.mtime ? stat.mtime * 1000 : Date.now(),
+          installedAt: stat.mtime ? stat.mtime.getTime() : Date.now(),
+          updatedAt: stat.mtime ? stat.mtime.getTime() : Date.now(),
         });
       } catch (error) {
         console.warn(`[Skills] Error loading skill ${dir}:`, error);
@@ -127,7 +122,7 @@ export async function loadInstalledSkills(): Promise<Skill[]> {
  * Install a skill from a URL
  */
 export async function installSkillFromUrl(url: string, id?: string): Promise<Skill> {
-  const storage = await getStorage();
+  const fs = await getFS();
 
   try {
     // Fetch SKILL.md from URL
@@ -158,10 +153,10 @@ export async function installSkillFromUrl(url: string, id?: string): Promise<Ski
 
     // Create skill directory
     const skillDir = `${SKILLS_DIR}/${skillId}`;
-    await storage.fs.mkdir(skillDir);
+    await fs.mkdir(skillDir);
 
     // Save SKILL.md
-    await storage.fs.writeFile(`${skillDir}/SKILL.md`, instructions);
+    await fs.writeFile(`${skillDir}/SKILL.md`, instructions);
 
     // Save manifest.json
     const fullManifest: SkillManifest = {
@@ -172,7 +167,7 @@ export async function installSkillFromUrl(url: string, id?: string): Promise<Ski
       author: manifest.author,
       triggers: manifest.triggers || parsed.triggers,
     };
-    await storage.fs.writeFile(`${skillDir}/manifest.json`, JSON.stringify(fullManifest, null, 2));
+    await fs.writeFile(`${skillDir}/manifest.json`, JSON.stringify(fullManifest, null, 2));
 
     const skill: Skill = {
       ...fullManifest,
@@ -217,12 +212,12 @@ export async function installSkillFromGitHub(
  * Uninstall a skill
  */
 export async function uninstallSkill(skillId: string): Promise<void> {
-  const storage = await getStorage();
+  const fs = await getFS();
 
   try {
     // Remove skill directory
     const skillDir = `${SKILLS_DIR}/${skillId}`;
-    await storage.fs.rm(skillDir, { recursive: true, force: true });
+    await fs.rm(skillDir, { recursive: true, force: true });
 
     // Update registry
     const registry = await getRegistry();

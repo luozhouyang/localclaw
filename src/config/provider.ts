@@ -1,4 +1,4 @@
-import { systemStorage } from '@/config/storage';
+import { getKV } from '@/infra/fs';
 import type { LLMProvider } from '@/types/llm';
 
 
@@ -8,36 +8,40 @@ export const PROVIDER_STORAGE_KEYS = {
 } as const;
 
 /**
- * Provider-specific storage helpers
+ * Provider-specific configs helpers
  */
-export const providerStorage = {
+export const providerConfigs = {
   /**
    * Get all provider IDs
    */
   async getProviderIds(): Promise<string[]> {
-    return (await systemStorage.get<string[]>(PROVIDER_STORAGE_KEYS.PROVIDER_IDS)) || [];
+    const kv = await getKV();
+    return (await kv.get<string[]>(PROVIDER_STORAGE_KEYS.PROVIDER_IDS)) || [];
   },
 
   /**
    * Save provider IDs list
    */
   async setProviderIds(ids: string[]): Promise<void> {
-    await systemStorage.set(PROVIDER_STORAGE_KEYS.PROVIDER_IDS, ids);
+    const kv = await getKV();
+    await kv.set(PROVIDER_STORAGE_KEYS.PROVIDER_IDS, ids);
   },
 
   /**
    * Get a provider by ID
    */
   async getProvider(id: string): Promise<LLMProvider | null> {
-    return systemStorage.get<LLMProvider>(`provider:${id}`);
+    const kv = await getKV();
+    return kv.get<LLMProvider>(`provider:${id}`);
   },
 
   /**
    * Save a provider
    */
   async saveProvider(provider: LLMProvider): Promise<void> {
+    const kv = await getKV();
     // Save provider data
-    await systemStorage.set(`provider:${provider.id}`, provider);
+    await kv.set(`provider:${provider.id}`, provider);
 
     // Track this provider ID
     const ids = await this.getProviderIds();
@@ -50,8 +54,9 @@ export const providerStorage = {
    * Delete a provider
    */
   async deleteProvider(id: string): Promise<void> {
+    const kv = await getKV();
     // Remove provider data
-    await systemStorage.delete(`provider:${id}`);
+    await kv.set(`provider:${id}`, null);
 
     // Remove from IDs list
     const ids = await this.getProviderIds();
@@ -68,17 +73,19 @@ export const providerStorage = {
    * Get active provider ID
    */
   async getActiveProviderId(): Promise<string | null> {
-    return systemStorage.get<string>(PROVIDER_STORAGE_KEYS.ACTIVE_PROVIDER_ID);
+    const kv = await getKV();
+    return kv.get<string>(PROVIDER_STORAGE_KEYS.ACTIVE_PROVIDER_ID);
   },
 
   /**
    * Set active provider ID
    */
   async setActiveProviderId(id: string | null): Promise<void> {
+    const kv = await getKV();
     if (id) {
-      await systemStorage.set(PROVIDER_STORAGE_KEYS.ACTIVE_PROVIDER_ID, id);
+      await kv.set(PROVIDER_STORAGE_KEYS.ACTIVE_PROVIDER_ID, id);
     } else {
-      await systemStorage.delete(PROVIDER_STORAGE_KEYS.ACTIVE_PROVIDER_ID);
+      await kv.set(PROVIDER_STORAGE_KEYS.ACTIVE_PROVIDER_ID, null);
     }
   },
 

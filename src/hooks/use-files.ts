@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-
-// Lazy import filesystem (client-side only)
-async function getStorage() {
-  const { getAgentStorage } = await import('@/config/agent-fs');
-  return getAgentStorage();
-}
+import { getFS } from '@/lib/file-utils';
 
 export interface FileItem {
   name: string;
@@ -42,11 +37,11 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
     setError(null);
 
     try {
-      const agent = await getStorage();
+      const fs = await getFS();
 
       // Ensure directory exists (recursively create parent directories)
       try {
-        await agent.fs.access(path);
+        await fs.access(path);
       } catch {
         // Create parent directories recursively
         const parts = path.split('/').filter(Boolean);
@@ -54,11 +49,11 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
         for (const part of parts) {
           currentPath += '/' + part;
           try {
-            await agent.fs.access(currentPath);
+            await fs.access(currentPath);
           } catch {
             // Directory doesn't exist, create it
             try {
-              await agent.fs.mkdir(currentPath);
+              await fs.mkdir(currentPath);
             } catch (mkdirErr: any) {
               // Ignore "already exists" errors, throw others
               if (!mkdirErr.message?.includes('exists')) {
@@ -69,19 +64,19 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
         }
       }
 
-      const entries = await agent.fs.readdir(path);
+      const entries = await fs.readdir(path);
       const fileItems: FileItem[] = [];
 
       for (const name of entries) {
         const fullPath = `${path}/${name}`.replace(/\/+/g, '/');
         try {
-          const stats = await agent.fs.stat(fullPath);
+          const stats = await fs.stat(fullPath);
           fileItems.push({
             name,
             path: fullPath,
-            type: stats.isDirectory() ? 'directory' : 'file',
+            type: stats.isDirectory ? 'directory' : 'file',
             size: stats.size || 0,
-            mtime: stats.mtime ? stats.mtime * 1000 : Date.now(),
+            mtime: stats.mtime ? stats.mtime.getTime() : Date.now(),
           });
         } catch (err) {
           console.warn(`[useFiles] Failed to stat ${fullPath}:`, err);
@@ -118,9 +113,9 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
   const createDirectory = useCallback(async (name: string) => {
     setIsLoading(true);
     try {
-      const agent = await getStorage();
+      const fs = await getFS();
       const newPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
-      await agent.fs.mkdir(newPath);
+      await fs.mkdir(newPath);
       await listFiles();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create directory');
@@ -133,14 +128,14 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
   const deleteItem = useCallback(async (name: string) => {
     setIsLoading(true);
     try {
-      const agent = await getStorage();
+      const fs = await getFS();
       const targetPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
-      const stats = await agent.fs.stat(targetPath);
+      const stats = await fs.stat(targetPath);
 
-      if (stats.isDirectory()) {
-        await agent.fs.rm(targetPath, { recursive: true, force: true });
+      if (stats.isDirectory) {
+        await fs.rm(targetPath, { recursive: true, force: true });
       } else {
-        await agent.fs.unlink(targetPath);
+        await fs.unlink(targetPath);
       }
 
       await listFiles();
@@ -155,10 +150,10 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
   const renameItem = useCallback(async (oldName: string, newName: string) => {
     setIsLoading(true);
     try {
-      const agent = await getStorage();
+      const fs = await getFS();
       const oldPath = `${currentPath}/${oldName}`.replace(/\/+/g, '/');
       const newPath = `${currentPath}/${newName}`.replace(/\/+/g, '/');
-      await agent.fs.rename(oldPath, newPath);
+      await fs.rename(oldPath, newPath);
       await listFiles();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to rename item');
@@ -171,12 +166,12 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
   const uploadFile = useCallback(async (file: File, targetName?: string) => {
     setIsLoading(true);
     try {
-      const agent = await getStorage();
+      const fs = await getFS();
       const name = targetName || file.name;
       const targetPath = `${currentPath}/${name}`.replace(/\/+/g, '/');
 
       const content = await file.text();
-      await agent.fs.writeFile(targetPath, content);
+      await fs.writeFile(targetPath, content);
       await listFiles();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload file');
@@ -188,9 +183,9 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
 
   const readFile = useCallback(async (name: string): Promise<string> => {
     try {
-      const agent = await getStorage();
+      const fs = await getFS();
       const filePath = `${currentPath}/${name}`.replace(/\/+/g, '/');
-      return await agent.fs.readFile(filePath, 'utf-8');
+      return await fs.readFile(filePath, 'utf-8');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to read file');
       throw err;
@@ -200,9 +195,9 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
   const writeFile = useCallback(async (name: string, content: string) => {
     setIsLoading(true);
     try {
-      const agent = await getStorage();
+      const fs = await getFS();
       const filePath = `${currentPath}/${name}`.replace(/\/+/g, '/');
-      await agent.fs.writeFile(filePath, content);
+      await fs.writeFile(filePath, content);
       await listFiles();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to write file');

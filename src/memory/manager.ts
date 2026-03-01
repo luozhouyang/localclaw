@@ -1,3 +1,4 @@
+import { getFS } from '@/lib/file-utils';
 import type {
   ThreadSummary,
   ThreadFacts,
@@ -9,18 +10,12 @@ import type {
 } from './types';
 import { MEMORY_PATHS } from './types';
 
-// Helper to get filesystem instance (client-side only)
-async function getFS() {
-  const { getSystemStorage } = await import('@/config/agent-fs');
-  return getSystemStorage();
-}
-
 // ==================== Thread Memory Operations ====================
 
 export async function getThreadSummary(threadId: string): Promise<ThreadSummary | null> {
   const fs = await getFS();
   try {
-    const content = await fs.fs.readFile(MEMORY_PATHS.threadSummary(threadId), 'utf-8');
+    const content = await fs.readFile(MEMORY_PATHS.threadSummary(threadId), 'utf-8');
     return JSON.parse(content) as ThreadSummary;
   } catch {
     return null;
@@ -29,7 +24,7 @@ export async function getThreadSummary(threadId: string): Promise<ThreadSummary 
 
 export async function saveThreadSummary(threadId: string, summary: ThreadSummary): Promise<void> {
   const fs = await getFS();
-  await fs.fs.writeFile(MEMORY_PATHS.threadSummary(threadId), JSON.stringify(summary, null, 2));
+  await fs.writeFile(MEMORY_PATHS.threadSummary(threadId), JSON.stringify(summary, null, 2));
 }
 
 export async function getLastSummaryEndIndex(threadId: string): Promise<number> {
@@ -40,7 +35,7 @@ export async function getLastSummaryEndIndex(threadId: string): Promise<number> 
 export async function getThreadFacts(threadId: string): Promise<ThreadFacts | null> {
   const fs = await getFS();
   try {
-    const content = await fs.fs.readFile(MEMORY_PATHS.threadFacts(threadId), 'utf-8');
+    const content = await fs.readFile(MEMORY_PATHS.threadFacts(threadId), 'utf-8');
     return JSON.parse(content) as ThreadFacts;
   } catch {
     return null;
@@ -49,7 +44,7 @@ export async function getThreadFacts(threadId: string): Promise<ThreadFacts | nu
 
 export async function saveThreadFacts(threadId: string, facts: ThreadFacts): Promise<void> {
   const fs = await getFS();
-  await fs.fs.writeFile(MEMORY_PATHS.threadFacts(threadId), JSON.stringify(facts, null, 2));
+  await fs.writeFile(MEMORY_PATHS.threadFacts(threadId), JSON.stringify(facts, null, 2));
 }
 
 export async function addThreadFact(
@@ -106,7 +101,7 @@ export async function deleteThreadFact(threadId: string, factId: string): Promis
 export async function getUserProfile(userId = 'default'): Promise<UserProfile | null> {
   const fs = await getFS();
   try {
-    const content = await fs.fs.readFile(MEMORY_PATHS.userProfile, 'utf-8');
+    const content = await fs.readFile(MEMORY_PATHS.userProfile, 'utf-8');
     const profile = JSON.parse(content) as UserProfile;
     // Ensure userId matches
     if (profile.userId !== userId) return null;
@@ -119,7 +114,7 @@ export async function getUserProfile(userId = 'default'): Promise<UserProfile | 
 export async function saveUserProfile(profile: UserProfile): Promise<void> {
   const fs = await getFS();
   profile.updatedAt = Date.now();
-  await fs.fs.writeFile(MEMORY_PATHS.userProfile, JSON.stringify(profile, null, 2));
+  await fs.writeFile(MEMORY_PATHS.userProfile, JSON.stringify(profile, null, 2));
 }
 
 export async function getOrCreateUserProfile(userId = 'default'): Promise<UserProfile> {
@@ -221,7 +216,7 @@ export async function addUserSnippet(
 export async function getUserRelationship(_userId = 'default'): Promise<UserRelationship | null> {
   const fs = await getFS();
   try {
-    const content = await fs.fs.readFile(MEMORY_PATHS.userRelationship, 'utf-8');
+    const content = await fs.readFile(MEMORY_PATHS.userRelationship, 'utf-8');
     return JSON.parse(content) as UserRelationship;
   } catch {
     return null;
@@ -244,7 +239,7 @@ export async function getOrCreateUserRelationship(userId = 'default'): Promise<U
   };
 
   const fs = await getFS();
-  await fs.fs.writeFile(MEMORY_PATHS.userRelationship, JSON.stringify(relationship, null, 2));
+  await fs.writeFile(MEMORY_PATHS.userRelationship, JSON.stringify(relationship, null, 2));
   return relationship;
 }
 
@@ -272,7 +267,7 @@ export async function recordInteraction(
   relationship.trustLevel = Math.min(0.9, 0.5 + totalInteractions * 0.01);
 
   const fs = await getFS();
-  await fs.fs.writeFile(MEMORY_PATHS.userRelationship, JSON.stringify(relationship, null, 2));
+  await fs.writeFile(MEMORY_PATHS.userRelationship, JSON.stringify(relationship, null, 2));
 }
 
 // ==================== Project Memory Operations ====================
@@ -280,7 +275,7 @@ export async function recordInteraction(
 export async function getProjectMemory(projectId: string): Promise<ProjectMemory | null> {
   const fs = await getFS();
   try {
-    const content = await fs.fs.readFile(MEMORY_PATHS.project(projectId), 'utf-8');
+    const content = await fs.readFile(MEMORY_PATHS.project(projectId), 'utf-8');
     return JSON.parse(content) as ProjectMemory;
   } catch {
     return null;
@@ -290,7 +285,7 @@ export async function getProjectMemory(projectId: string): Promise<ProjectMemory
 export async function saveProjectMemory(memory: ProjectMemory): Promise<void> {
   const fs = await getFS();
   memory.updatedAt = Date.now();
-  await fs.fs.writeFile(MEMORY_PATHS.project(memory.projectId), JSON.stringify(memory, null, 2));
+  await fs.writeFile(MEMORY_PATHS.project(memory.projectId), JSON.stringify(memory, null, 2));
 }
 
 export async function getOrCreateProjectMemory(
@@ -397,7 +392,7 @@ async function addToProjectIndex(projectId: string, projectPath: string): Promis
   let index: Array<{ projectId: string; path: string; addedAt: number }> = [];
 
   try {
-    const content = await fs.fs.readFile(MEMORY_PATHS.projectIndex, 'utf-8');
+    const content = await fs.readFile(MEMORY_PATHS.projectIndex, 'utf-8');
     index = JSON.parse(content);
   } catch {
     // Index doesn't exist yet
@@ -405,7 +400,7 @@ async function addToProjectIndex(projectId: string, projectPath: string): Promis
 
   if (!index.find((p) => p.projectId === projectId)) {
     index.push({ projectId, path: projectPath, addedAt: Date.now() });
-    await fs.fs.writeFile(MEMORY_PATHS.projectIndex, JSON.stringify(index, null, 2));
+    await fs.writeFile(MEMORY_PATHS.projectIndex, JSON.stringify(index, null, 2));
   }
 }
 

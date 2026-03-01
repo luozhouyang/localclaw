@@ -2,8 +2,8 @@ import { Bash } from 'just-bash';
 
 // Lazy import filesystem (client-side only)
 async function getBashFS() {
-  const { getBashFilesystem } = await import('@/config/agent-fs');
-  return getBashFilesystem();
+  const { getFilesystem } = await import('@/infra/fs');
+  return getFilesystem();
 }
 /**
  * Bash execution options

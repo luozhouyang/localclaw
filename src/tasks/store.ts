@@ -1,20 +1,15 @@
+import { getFS } from '@/lib/file-utils';
 import type { TaskInstance, TaskStatus } from './types';
 
 const TASKS_DIR = '/tasks/instances';
 const QUEUE_FILE = '/tasks/queue/pending.json';
 const RUNNING_FILE = '/tasks/queue/running.json';
 
-// Lazy load agent-fs (client-side only)
-async function getFS() {
-  const { getSystemStorage } = await import('@/config/agent-fs');
-  return getSystemStorage();
-}
-
 export class TaskStore {
   private async ensureDir(path: string): Promise<void> {
     const fs = await getFS();
     try {
-      await fs.fs.mkdir(path);
+      await fs.mkdir(path);
     } catch {
       // Directory may already exist
     }
@@ -23,13 +18,13 @@ export class TaskStore {
   private async writeJSON(path: string, data: unknown): Promise<void> {
     const fs = await getFS();
     await this.ensureDir(path.substring(0, path.lastIndexOf('/')));
-    await fs.fs.writeFile(path, JSON.stringify(data, null, 2));
+    await fs.writeFile(path, JSON.stringify(data, null, 2));
   }
 
   private async readJSON<T>(path: string): Promise<T | null> {
     const fs = await getFS();
     try {
-      const content = await fs.fs.readFile(path, 'utf-8');
+      const content = await fs.readFile(path, 'utf-8');
       return JSON.parse(content) as T;
     } catch {
       return null;
@@ -50,7 +45,7 @@ export class TaskStore {
     const fs = await getFS();
     const path = `${TASKS_DIR}/${id}.json`;
     try {
-      await fs.fs.rm(path, { force: true });
+      await fs.rm(path, { force: true });
     } catch {
       // File may not exist
     }
@@ -61,7 +56,7 @@ export class TaskStore {
     await this.ensureDir(TASKS_DIR);
 
     try {
-      const entries = await fs.fs.readdir(TASKS_DIR);
+      const entries = await fs.readdir(TASKS_DIR);
       const tasks: TaskInstance[] = [];
 
       for (const entry of entries) {

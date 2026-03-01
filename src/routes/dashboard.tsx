@@ -14,8 +14,12 @@ import { taskScheduler } from '@/tasks'
 
 // Dynamic imports (client-side only)
 async function initFilesystem() {
-  const { initializeFilesystem } = await import('@/config/agent-fs')
-  return initializeFilesystem()
+  const { getFilesystem } = await import('@/infra/fs')
+  const fs = await getFilesystem()
+  // Initialize chat storage structure
+  const { threadManager } = await import('@/chat/thread-manager')
+  await threadManager.initialize()
+  return fs
 }
 
 // Dynamic import for task definitions - client-side only

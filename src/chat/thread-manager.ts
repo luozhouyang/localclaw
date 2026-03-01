@@ -4,8 +4,8 @@ import { CHAT_PATHS } from './types';
 
 class ThreadManager {
   private async getFS() {
-    const { getSystemStorage } = await import('@/config/agent-fs');
-    return getSystemStorage();
+    const { getFilesystem } = await import('@/infra/fs');
+    return getFilesystem();
   }
 
   // Initialize chat storage structure
@@ -14,18 +14,18 @@ class ThreadManager {
 
     // Ensure base directories exist
     try {
-      await fs.fs.mkdir('/chat');
+      await fs.mkdir('/chat');
     } catch { /* already exists */ }
 
     try {
-      await fs.fs.mkdir('/chat/threads');
+      await fs.mkdir('/chat/threads');
     } catch { /* already exists */ }
 
     // Initialize thread index if not exists
     try {
-      await fs.fs.readFile(CHAT_PATHS.THREAD_INDEX, 'utf-8');
+      await fs.readFile(CHAT_PATHS.THREAD_INDEX);
     } catch {
-      await fs.fs.writeFile(CHAT_PATHS.THREAD_INDEX, JSON.stringify([]));
+      await fs.writeFile(CHAT_PATHS.THREAD_INDEX, JSON.stringify([]));
     }
   }
 
@@ -43,13 +43,13 @@ class ThreadManager {
     };
 
     // Create thread directory
-    await fs.fs.mkdir(CHAT_PATHS.threadDir(thread.id));
+    await fs.mkdir(CHAT_PATHS.threadDir(thread.id));
 
     // Initialize empty messages file
-    await fs.fs.writeFile(CHAT_PATHS.threadMessages(thread.id), '');
+    await fs.writeFile(CHAT_PATHS.threadMessages(thread.id), '');
 
     // Save metadata
-    await fs.fs.writeFile(
+    await fs.writeFile(
       CHAT_PATHS.threadMetadata(thread.id),
       JSON.stringify(thread)
     );
@@ -57,7 +57,7 @@ class ThreadManager {
     // Update index
     const threads = await this.listThreads();
     threads.unshift(thread);
-    await fs.fs.writeFile(CHAT_PATHS.THREAD_INDEX, JSON.stringify(threads));
+    await fs.writeFile(CHAT_PATHS.THREAD_INDEX, JSON.stringify(threads));
 
     return thread;
   }
@@ -67,7 +67,7 @@ class ThreadManager {
     const fs = await this.getFS();
 
     try {
-      const content = await fs.fs.readFile(CHAT_PATHS.THREAD_INDEX, 'utf-8');
+      const content = await fs.readFile(CHAT_PATHS.THREAD_INDEX);
       const threads: Thread[] = JSON.parse(content || '[]');
 
       if (channel) {
@@ -83,7 +83,7 @@ class ThreadManager {
   async getThread(threadId: string): Promise<Thread | null> {
     try {
       const fs = await this.getFS();
-      const content = await fs.fs.readFile(
+      const content = await fs.readFile(
         CHAT_PATHS.threadMetadata(threadId),
         'utf-8'
       );
@@ -105,7 +105,7 @@ class ThreadManager {
 
     const updated = { ...thread, ...updates, updatedAt: Date.now() };
 
-    await fs.fs.writeFile(
+    await fs.writeFile(
       CHAT_PATHS.threadMetadata(threadId),
       JSON.stringify(updated)
     );
@@ -115,7 +115,7 @@ class ThreadManager {
     const index = threads.findIndex(t => t.id === threadId);
     if (index !== -1) {
       threads[index] = updated;
-      await fs.fs.writeFile(CHAT_PATHS.THREAD_INDEX, JSON.stringify(threads));
+      await fs.writeFile(CHAT_PATHS.THREAD_INDEX, JSON.stringify(threads));
     }
   }
 
@@ -126,14 +126,14 @@ class ThreadManager {
     // Remove from index
     const threads = await this.listThreads();
     const filtered = threads.filter(t => t.id !== threadId);
-    await fs.fs.writeFile(CHAT_PATHS.THREAD_INDEX, JSON.stringify(filtered));
+    await fs.writeFile(CHAT_PATHS.THREAD_INDEX, JSON.stringify(filtered));
 
     // Note: Directory deletion not supported in basic AgentFS
     // Mark as deleted in metadata
     try {
       const metadata = await this.getThread(threadId);
       if (metadata) {
-        await fs.fs.writeFile(
+        await fs.writeFile(
           CHAT_PATHS.threadMetadata(threadId),
           JSON.stringify({ ...metadata, deleted: true, updatedAt: Date.now() })
         );
@@ -146,7 +146,7 @@ class ThreadManager {
     const fs = await this.getFS();
 
     try {
-      const content = await fs.fs.readFile(
+      const content = await fs.readFile(
         CHAT_PATHS.threadMessages(threadId),
         'utf-8'
       );
@@ -170,11 +170,11 @@ class ThreadManager {
     // Read existing content
     let existing = '';
     try {
-      existing = await fs.fs.readFile(path, 'utf-8');
+      existing = await fs.readFile(path, 'utf-8');
     } catch { /* file doesn't exist */ }
 
     // Append new message
-    await fs.fs.writeFile(path, existing + line);
+    await fs.writeFile(path, existing + line);
 
     // Update thread metadata
     const thread = await this.getThread(threadId);

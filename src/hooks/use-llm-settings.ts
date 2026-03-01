@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { providerStorage } from '@/config/provider-configs'
+import { providerConfigs } from '@/config/provider'
 import {
   type LLMProvider,
   PROVIDER_TEMPLATES,
@@ -18,8 +18,8 @@ export function useLLMSettings() {
 
     try {
       const [allProviders, activeId] = await Promise.all([
-        providerStorage.getAllProviders(),
-        providerStorage.getActiveProviderId(),
+        providerConfigs.getAllProviders(),
+        providerConfigs.getActiveProviderId(),
       ])
 
       if (activeId) {
@@ -52,7 +52,7 @@ export function useLLMSettings() {
   // Set active provider
   const setActiveProvider = useCallback(async (id: string | null) => {
     try {
-      await providerStorage.setActiveProviderId(id)
+      await providerConfigs.setActiveProviderId(id)
       setActiveProviderId(id)
 
       // Update local state to reflect active status
@@ -72,14 +72,14 @@ export function useLLMSettings() {
 
   // Get a single provider by ID
   const getProvider = useCallback(async (id: string): Promise<LLMProvider | null> => {
-    return providerStorage.getProvider(id)
+    return providerConfigs.getProvider(id)
   }, [])
 
   // Save a provider
   const saveProvider = useCallback(async (provider: LLMProvider) => {
     try {
       // Save the provider
-      await providerStorage.saveProvider(provider)
+      await providerConfigs.saveProvider(provider)
 
       // Update local state
       setProviders((prev) => {
@@ -106,7 +106,7 @@ export function useLLMSettings() {
   // Delete a provider
   const deleteProvider = useCallback(async (id: string) => {
     try {
-      await providerStorage.deleteProvider(id)
+      await providerConfigs.deleteProvider(id)
 
       // If deleting active provider, clear local state
       if (activeProviderId === id) {

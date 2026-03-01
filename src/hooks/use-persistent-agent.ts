@@ -260,8 +260,8 @@ export function usePersistentAgent(
   const clear = useCallback(async () => {
     if (!options.threadId) return;
     // Clear messages but keep thread
-    const fs = await (await import('@/config/agent-fs')).getSystemStorage();
-    await fs.fs.writeFile(
+    const fs = await (await import('@/infra/fs')).getFilesystem();
+    await fs.writeFile(
       `/chat/threads/${options.threadId}/messages.jsonl`,
       ''
     );

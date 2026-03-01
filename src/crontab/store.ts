@@ -1,3 +1,4 @@
+import { getFS } from '@/lib/file-utils';
 import { STORAGE_PATHS, SCHEDULER_STATE_VERSION } from './constants';
 import type {
   CronJob,
@@ -7,14 +8,6 @@ import type {
   LogQueryOptions,
   LogStats,
 } from './types';
-
-/**
- * 懒加载 getSystemStorage 以避免 SSR 问题
- */
-async function getFS() {
-  const { getSystemStorage } = await import('@/config/agent-fs');
-  return getSystemStorage();
-}
 
 /**
  * Cron 数据存储
@@ -30,7 +23,7 @@ export class CronStore {
     for (const part of parts) {
       currentPath += '/' + part;
       try {
-        await fs.fs.mkdir(currentPath);
+        await fs.mkdir(currentPath);
       } catch (err: any) {
         // 忽略目录已存在的错误
         if (!err?.message?.includes('exists')) {
@@ -44,13 +37,13 @@ export class CronStore {
   private async writeJSON(path: string, data: unknown): Promise<void> {
     const fs = await getFS();
     await this.ensureDir(path.substring(0, path.lastIndexOf('/')));
-    await fs.fs.writeFile(path, JSON.stringify(data, null, 2));
+    await fs.writeFile(path, JSON.stringify(data, null, 2));
   }
 
   private async readJSON<T>(path: string): Promise<T | null> {
     const fs = await getFS();
     try {
-      const content = await fs.fs.readFile(path, 'utf-8');
+      const content = await fs.readFile(path, 'utf-8');
       return JSON.parse(content) as T;
     } catch {
       return null;
@@ -62,10 +55,10 @@ export class CronStore {
     await this.ensureDir(path.substring(0, path.lastIndexOf('/')));
 
     try {
-      const existing = await fs.fs.readFile(path, 'utf-8');
-      await fs.fs.writeFile(path, existing + line + '\n');
+      const existing = await fs.readFile(path, 'utf-8');
+      await fs.writeFile(path, existing + line + '\n');
     } catch {
-      await fs.fs.writeFile(path, line + '\n');
+      await fs.writeFile(path, line + '\n');
     }
   }
 
@@ -96,7 +89,7 @@ export class CronStore {
     const fs = await getFS();
     const path = `${STORAGE_PATHS.JOBS_DIR}/${id}.json`;
     try {
-      await fs.fs.rm(path);
+      await fs.rm(path);
     } catch {
       // 文件可能不存在，忽略错误
     }
@@ -110,7 +103,7 @@ export class CronStore {
     await this.ensureDir(STORAGE_PATHS.JOBS_DIR);
 
     try {
-      const entries = await fs.fs.readdir(STORAGE_PATHS.JOBS_DIR);
+      const entries = await fs.readdir(STORAGE_PATHS.JOBS_DIR);
       const jobs: CronJob[] = [];
 
       for (const entry of entries) {
@@ -178,7 +171,7 @@ export class CronStore {
 
     try {
       await this.ensureDir(STORAGE_PATHS.LOGS_DIR);
-      const entries = await fs.fs.readdir(STORAGE_PATHS.LOGS_DIR);
+      const entries = await fs.readdir(STORAGE_PATHS.LOGS_DIR);
 
       // 按日期倒序排列（最新的在前）
       const sortedEntries = entries
@@ -190,7 +183,7 @@ export class CronStore {
         if (logs.length >= (options?.limit ?? 100)) break;
 
         const logFile = `${STORAGE_PATHS.LOGS_DIR}/${entry}`;
-        const content = await fs.fs.readFile(logFile, 'utf-8');
+        const content = await fs.readFile(logFile, 'utf-8');
         const lines = content.split('\n').filter(Boolean);
 
         for (const line of lines) {
@@ -250,7 +243,7 @@ export class CronStore {
     let deletedCount = 0;
 
     try {
-      const entries = await fs.fs.readdir(STORAGE_PATHS.LOGS_DIR);
+      const entries = await fs.readdir(STORAGE_PATHS.LOGS_DIR);
       const beforeStr = before.toISOString().split('T')[0];
 
       for (const entry of entries) {
@@ -259,7 +252,7 @@ export class CronStore {
         const dateStr = entry.replace('.jsonl', '');
         if (dateStr < beforeStr) {
           try {
-            await fs.fs.rm(`${STORAGE_PATHS.LOGS_DIR}/${entry}`);
+            await fs.rm(`${STORAGE_PATHS.LOGS_DIR}/${entry}`);
             deletedCount++;
           } catch {
             // 忽略删除失败的错误
