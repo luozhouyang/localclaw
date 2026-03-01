@@ -13,7 +13,6 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CrontabIndexRouteImport } from './routes/crontab/index'
 import { Route as CrontabNewRouteImport } from './routes/crontab/new'
-import { Route as ApiChatRouteImport } from './routes/api/chat'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -35,23 +34,16 @@ const CrontabNewRoute = CrontabNewRouteImport.update({
   path: '/crontab/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiChatRoute = ApiChatRouteImport.update({
-  id: '/api/chat',
-  path: '/api/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/api/chat': typeof ApiChatRoute
   '/crontab/new': typeof CrontabNewRoute
   '/crontab/': typeof CrontabIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/api/chat': typeof ApiChatRoute
   '/crontab/new': typeof CrontabNewRoute
   '/crontab': typeof CrontabIndexRoute
 }
@@ -59,28 +51,20 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/api/chat': typeof ApiChatRoute
   '/crontab/new': typeof CrontabNewRoute
   '/crontab/': typeof CrontabIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/api/chat' | '/crontab/new' | '/crontab/'
+  fullPaths: '/' | '/dashboard' | '/crontab/new' | '/crontab/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/api/chat' | '/crontab/new' | '/crontab'
-  id:
-    | '__root__'
-    | '/'
-    | '/dashboard'
-    | '/api/chat'
-    | '/crontab/new'
-    | '/crontab/'
+  to: '/' | '/dashboard' | '/crontab/new' | '/crontab'
+  id: '__root__' | '/' | '/dashboard' | '/crontab/new' | '/crontab/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
-  ApiChatRoute: typeof ApiChatRoute
   CrontabNewRoute: typeof CrontabNewRoute
   CrontabIndexRoute: typeof CrontabIndexRoute
 }
@@ -115,20 +99,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrontabNewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/chat': {
-      id: '/api/chat'
-      path: '/api/chat'
-      fullPath: '/api/chat'
-      preLoaderRoute: typeof ApiChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
-  ApiChatRoute: ApiChatRoute,
   CrontabNewRoute: CrontabNewRoute,
   CrontabIndexRoute: CrontabIndexRoute,
 }

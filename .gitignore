@@ -2,6 +2,7 @@
 design-system
 plans
 docs
+test-results
 
 node_modules
 .DS_Store

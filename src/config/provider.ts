@@ -1,111 +1,94 @@
 import { getKV } from '@/infra/fs';
-import type { LLMProvider } from '@/types/llm';
+import type { LLMProvider, ProviderType } from '@/types/llm';
+import { OPENROUTER_CONFIG } from '@/types/llm';
 
-
-export const PROVIDER_STORAGE_KEYS = {
-  PROVIDER_IDS: 'llm:provider_ids',
-  ACTIVE_PROVIDER_ID: 'llm:active_provider_id',
-} as const;
+const PROVIDER_CONFIG_KEY = 'llm:provider:config';
 
 /**
- * Provider-specific configs helpers
+ * Provider config with encrypted API key
+ * All data stored in a single object
+ */
+export interface StoredProviderConfig {
+  id: ProviderType;
+  baseURL: string;
+  models: string[];  // 支持的模型列表
+  defaultModel: string;  // 默认选中的模型
+  encryptedApiKey: string; // base64(salt + iv + ciphertext)
+}
+
+/**
+ * Provider configuration manager
+ * Stores config and encrypted API key together
  */
 export const providerConfigs = {
   /**
-   * Get all provider IDs
+   * Get full provider config (including encrypted API key)
    */
-  async getProviderIds(): Promise<string[]> {
+  async getProviderConfig(): Promise<StoredProviderConfig | null> {
     const kv = await getKV();
-    return (await kv.get<string[]>(PROVIDER_STORAGE_KEYS.PROVIDER_IDS)) || [];
+    return kv.get<StoredProviderConfig>(PROVIDER_CONFIG_KEY);
   },
 
   /**
-   * Save provider IDs list
+   * Check if provider config exists
    */
-  async setProviderIds(ids: string[]): Promise<void> {
+  async hasProviderConfig(): Promise<boolean> {
+    const config = await this.getProviderConfig();
+    return config !== null;
+  },
+
+  /**
+   * Check if provider has encrypted API key stored
+   */
+  async hasEncryptedApiKey(): Promise<boolean> {
+    const config = await this.getProviderConfig();
+    return config !== null && !!config.encryptedApiKey;
+  },
+
+  /**
+   * Save provider configuration with encrypted API key
+   */
+  async saveProviderConfig(
+    type: ProviderType,
+    baseURL: string,
+    models: string[],
+    defaultModel: string,
+    encryptedApiKey: string
+  ): Promise<StoredProviderConfig> {
     const kv = await getKV();
-    await kv.set(PROVIDER_STORAGE_KEYS.PROVIDER_IDS, ids);
+
+    const config: StoredProviderConfig = {
+      id: type,
+      baseURL: type === 'openrouter' ? OPENROUTER_CONFIG.baseURL : baseURL,
+      models: models.length > 0 ? models : [type === 'openrouter' ? OPENROUTER_CONFIG.defaultModel : ''],
+      defaultModel: defaultModel || (models.length > 0 ? models[0] : (type === 'openrouter' ? OPENROUTER_CONFIG.defaultModel : '')),
+      encryptedApiKey,
+    };
+
+    await kv.set(PROVIDER_CONFIG_KEY, config);
+    return config;
   },
 
   /**
-   * Get a provider by ID
+   * Delete provider configuration
    */
-  async getProvider(id: string): Promise<LLMProvider | null> {
+  async deleteProvider(): Promise<void> {
     const kv = await getKV();
-    return kv.get<LLMProvider>(`provider:${id}`);
+    await kv.set(PROVIDER_CONFIG_KEY, null);
   },
 
   /**
-   * Save a provider
+   * Build full provider object (config + decrypted API key)
    */
-  async saveProvider(provider: LLMProvider): Promise<void> {
-    const kv = await getKV();
-    // Save provider data
-    await kv.set(`provider:${provider.id}`, provider);
-
-    // Track this provider ID
-    const ids = await this.getProviderIds();
-    if (!ids.includes(provider.id)) {
-      await this.setProviderIds([...ids, provider.id]);
-    }
-  },
-
-  /**
-   * Delete a provider
-   */
-  async deleteProvider(id: string): Promise<void> {
-    const kv = await getKV();
-    // Remove provider data
-    await kv.set(`provider:${id}`, null);
-
-    // Remove from IDs list
-    const ids = await this.getProviderIds();
-    await this.setProviderIds(ids.filter(i => i !== id));
-
-    // Check if it was active and clear
-    const activeId = await this.getActiveProviderId();
-    if (activeId === id) {
-      await this.setActiveProviderId(null);
-    }
-  },
-
-  /**
-   * Get active provider ID
-   */
-  async getActiveProviderId(): Promise<string | null> {
-    const kv = await getKV();
-    return kv.get<string>(PROVIDER_STORAGE_KEYS.ACTIVE_PROVIDER_ID);
-  },
-
-  /**
-   * Set active provider ID
-   */
-  async setActiveProviderId(id: string | null): Promise<void> {
-    const kv = await getKV();
-    if (id) {
-      await kv.set(PROVIDER_STORAGE_KEYS.ACTIVE_PROVIDER_ID, id);
-    } else {
-      await kv.set(PROVIDER_STORAGE_KEYS.ACTIVE_PROVIDER_ID, null);
-    }
-  },
-
-  /**
-   * Get all providers
-   */
-  async getAllProviders(): Promise<LLMProvider[]> {
-    const ids = await this.getProviderIds();
-    const providers = await Promise.all(
-      ids.map(id => this.getProvider(id))
-    );
-    return providers.filter((p): p is LLMProvider => p !== null);
-  },
-
-  /**
-   * Get active provider
-   */
-  async getActiveProvider(): Promise<LLMProvider | null> {
-    const activeId = await this.getActiveProviderId();
-    if (!activeId) return null;
-    return this.getProvider(activeId);
+  buildProvider(config: StoredProviderConfig, apiKey: string): LLMProvider {
+    return {
+      id: config.id,
+      name: config.id === 'openrouter' ? OPENROUTER_CONFIG.name : 'Custom',
+      baseURL: config.baseURL,
+      apiKey,
+      models: config.models || [config.defaultModel || ''],
+      defaultModel: config.defaultModel || (config.models?.[0] || ''),
+      isActive: true,
+    };
   },
 };

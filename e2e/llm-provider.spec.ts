@@ -8,14 +8,14 @@ test.describe('Dashboard Page', () => {
   })
 
   test('should display dashboard with tabs', async ({ page }) => {
-    // Verify dashboard heading
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+    // Verify dashboard heading (LOCALCLAW, not Dashboard)
+    await expect(page.getByRole('heading', { name: 'LOCALCLAW' })).toBeVisible()
 
-    // Verify all tabs are present
-    await expect(page.getByRole('tab', { name: 'Chat' })).toBeVisible()
-    await expect(page.getByRole('tab', { name: 'Files' })).toBeVisible()
-    await expect(page.getByRole('tab', { name: 'Tasks' })).toBeVisible()
-    await expect(page.getByRole('tab', { name: 'Settings' })).toBeVisible()
+    // Verify all tabs are present (uppercase labels)
+    await expect(page.getByRole('tab', { name: 'CHAT' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'FILES' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'TASKS' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'CONFIG' })).toBeVisible()
   })
 })
 
@@ -24,200 +24,248 @@ test.describe('LLM Provider Settings', () => {
     await page.goto('/dashboard')
     await page.waitForLoadState('networkidle')
 
-    // Navigate to Settings tab
-    await page.getByRole('tab', { name: 'Settings' }).click()
-    await page.waitForTimeout(500)
+    // Navigate to Settings tab (CONFIG tab)
+    await page.getByRole('tab', { name: 'CONFIG' }).click()
+    await page.waitForTimeout(1000)
   })
 
   test('should display LLM Provider section', async ({ page }) => {
-    // Verify LLM Provider card is visible
-    await expect(page.getByRole('heading', { name: 'LLM Provider' })).toBeVisible()
-    await expect(page.getByText('Configure your AI model providers')).toBeVisible()
+    // Verify LLM Provider heading is visible
+    await expect(page.getByRole('heading', { name: 'LLM PROVIDER' })).toBeVisible()
+    await expect(page.getByText('Configure OpenRouter or a custom OpenAI-compatible provider')).toBeVisible()
   })
 
-  test('should add a custom provider with valid name', async ({ page }) => {
-    // Click Custom button to add a new provider
-    await page.getByRole('button', { name: 'Custom' }).click()
-    await page.waitForTimeout(300)
+  test('should save OpenRouter provider with master password', async ({ page }) => {
+    // Select OpenRouter provider type from dropdown
+    await page.getByRole('combobox').first().click()
+    await page.waitForTimeout(500)
+    await page.locator('[role="option"]:has-text("OpenRouter")').click()
 
-    // Expand the new provider accordion
-    await page.getByRole('button', { name: 'Custom Provider', exact: true }).click()
-    await page.waitForTimeout(300)
+    // Enter API Key
+    const apiKeyInput = page.locator('input[type="password"]').first()
+    await apiKeyInput.fill('sk-or-v1-test-api-key')
 
-    // Verify validation hint is shown
-    await expect(page.getByText('Only letters and numbers allowed (no spaces or special characters)')).toBeVisible()
+    // Add a model - type and press Enter
+    const modelInput = page.getByPlaceholder('Add model ID')
+    await modelInput.fill('anthropic/claude-3.5-sonnet')
+    await modelInput.press('Enter')
+    await page.waitForTimeout(500)
 
-    // Clear and enter a valid provider name
-    const nameInput = page.getByPlaceholder('MyOpenAI')
-    await nameInput.clear()
-    await nameInput.fill('MyTestProvider123')
+    // Verify model appears in the list
+    await expect(page.locator('text=anthropic/claude-3.5-sonnet').first()).toBeVisible()
 
-    // Add a model
-    const modelInput = page.getByPlaceholder('Add new model (e.g., gpt-4o)')
+    // Save the provider - this should trigger master password dialog
+    await page.getByRole('button', { name: 'SAVE' }).click()
+
+    // Wait for master password dialog to appear
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 })
+
+    // Wait for dialog to be fully rendered
+    await page.waitForTimeout(500)
+
+    // Get the dialog and fill in the password fields
+    const dialog = page.getByRole('dialog')
+    const passwordInputs = dialog.locator('input[type="password"]')
+
+    // Fill both password fields
+    await passwordInputs.first().fill('testpass123')
+    await passwordInputs.nth(1).fill('testpass123')
+
+    // Click the submit button
+    await dialog.locator('button[type="submit"]').click()
+
+    // Wait for dialog to close (indicates successful submission)
+    await expect(dialog).not.toBeVisible({ timeout: 15000 })
+
+    // Wait for save to complete
+    await page.waitForTimeout(1000)
+
+    // Verify provider is saved - Active Provider badge should appear
+    await expect(page.getByText('ACTIVE PROVIDER')).toBeVisible({ timeout: 10000 })
+  })
+
+  test('should validate custom provider fields', async ({ page }) => {
+    // Select Custom provider type from dropdown
+    await page.getByRole('combobox').first().click()
+    await page.waitForTimeout(500)
+    await page.locator('[role="option"]:has-text("Custom")').first().click()
+
+    // Try to save without Base URL
+    await page.getByRole('button', { name: 'SAVE' }).click()
+
+    // Verify validation error
+    await expect(page.getByText('Base URL is required')).toBeVisible({ timeout: 10000 })
+
+    // Enter Base URL
+    await page.getByPlaceholder('https://api.example.com/v1').fill('https://api.example.com/v1')
+
+    // Try to save without adding any models
+    await page.getByRole('button', { name: 'SAVE' }).click()
+
+    // Verify validation error - now requires at least one model
+    await expect(page.getByText('Please add at least one model')).toBeVisible({ timeout: 10000 })
+
+    // Add a model - it will be auto-selected as default
+    const modelInput = page.getByPlaceholder('Add model ID')
+    await modelInput.fill('gpt-4o-custom')
+    await modelInput.press('Enter')
+    await page.waitForTimeout(500)
+
+    // Verify model was added and auto-selected
+    await expect(page.locator('text=gpt-4o-custom').first()).toBeVisible()
+  })
+
+  test('should manage models list', async ({ page }) => {
+    // Ensure OpenRouter is selected
+    await page.getByRole('combobox').first().click()
+    await page.waitForTimeout(500)
+    await page.locator('[role="option"]:has-text("OpenRouter")').click()
+
+    // Add first model using Enter key
+    const modelInput = page.getByPlaceholder('Add model ID')
     await modelInput.fill('gpt-4o')
     await modelInput.press('Enter')
-
-    // Verify model is added
-    await expect(page.getByText('gpt-4o')).toBeVisible()
-
-    // Save the provider
-    await page.getByRole('button', { name: 'Save', exact: true }).click()
     await page.waitForTimeout(500)
 
-    // Verify provider is saved (should show Edit button instead of Save)
-    await expect(page.getByRole('button', { name: 'Edit' })).toBeVisible()
-  })
-
-  test('should validate provider name - reject names with spaces', async ({ page }) => {
-    // Click Custom button
-    await page.getByRole('button', { name: 'Custom' }).click()
-    await page.waitForTimeout(300)
-
-    // Expand the provider
-    await page.getByRole('button', { name: 'Custom Provider', exact: true }).click()
-    await page.waitForTimeout(300)
-
-    // Try to save with invalid name (with space)
-    const nameInput = page.getByPlaceholder('MyOpenAI')
-    await nameInput.clear()
-    await nameInput.fill('Invalid Name')
-
-    await page.getByRole('button', { name: 'Save', exact: true }).click()
-
-    // Verify error message is shown
-    await expect(page.getByText('Provider name must contain only letters and numbers (no spaces or special characters)')).toBeVisible()
-  })
-
-  test('should activate and deactivate provider', async ({ page }) => {
-    // First add a provider
-    await page.getByRole('button', { name: 'Custom' }).click()
-    await page.waitForTimeout(300)
-
-    // Expand and save a valid provider
-    await page.getByRole('button', { name: 'Custom Provider', exact: true }).click()
-    await page.waitForTimeout(300)
-
-    const nameInput = page.getByPlaceholder('MyOpenAI')
-    await nameInput.clear()
-    await nameInput.fill('ActiveTestProvider')
-
-    // Add model and save
-    const modelInput = page.getByPlaceholder('Add new model (e.g., gpt-4o)')
-    await modelInput.fill('gpt-4o')
-    await modelInput.press('Enter')
-
-    await page.getByRole('button', { name: 'Save', exact: true }).click()
-    await page.waitForTimeout(500)
-
-    // Collapse and expand to get fresh state
-    await page.getByRole('button', { name: 'ActiveTestProvider' }).click()
-    await page.waitForTimeout(300)
-    await page.getByRole('button', { name: 'ActiveTestProvider' }).click()
-    await page.waitForTimeout(300)
-
-    // Activate the provider using the power button in the header
-    await page.getByRole('button', { name: 'Activate' }).click()
-    await page.waitForTimeout(500)
-
-    // Verify active indicator is shown
-    await expect(page.getByText('Active: ActiveTestProvider')).toBeVisible()
-
-    // Verify Active badge is shown on the provider
-    await expect(page.getByText('Active').first()).toBeVisible()
-
-    // Deactivate the provider
-    await page.getByRole('button', { name: 'Deactivate' }).click()
-    await page.waitForTimeout(500)
-
-    // Verify active indicator is removed
-    await expect(page.getByText('Active: ActiveTestProvider')).not.toBeVisible()
-  })
-
-  test('should manage models in provider', async ({ page }) => {
-    // Add a provider
-    await page.getByRole('button', { name: 'Custom' }).click()
-    await page.waitForTimeout(300)
-
-    // Expand the provider
-    await page.getByRole('button', { name: 'Custom Provider', exact: true }).click()
-    await page.waitForTimeout(300)
-
-    // Add first model
-    const modelInput = page.getByPlaceholder('Add new model (e.g., gpt-4o)')
-    await modelInput.fill('gpt-4o')
-    await modelInput.press('Enter')
-    await page.waitForTimeout(300)
-
-    // Verify first model is added and set as default
-    await expect(page.getByText('gpt-4o')).toBeVisible()
+    // Verify first model appears
+    await expect(page.locator('text=gpt-4o').first()).toBeVisible()
 
     // Add second model
-    await modelInput.fill('claude-3-sonnet')
+    await modelInput.fill('claude-3-opus')
     await modelInput.press('Enter')
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(500)
 
-    // Verify second model is added
-    await expect(page.getByText('claude-3-sonnet')).toBeVisible()
-
-    // Set second model as default
-    const modelItems = page.locator('div', { hasText: /^claude-3-sonnet$/ })
-    await modelItems.first().getByRole('button').first().click()
-    await page.waitForTimeout(300)
-
-    // Verify default badge moved to second model
-    await expect(page.getByText('(default)')).toBeVisible()
+    // Verify both models are visible
+    await expect(page.locator('text=gpt-4o').first()).toBeVisible()
+    await expect(page.locator('text=claude-3-opus').first()).toBeVisible()
   })
 
   test('should delete provider', async ({ page }) => {
-    // Add a provider
-    await page.getByRole('button', { name: 'Custom' }).click()
-    await page.waitForTimeout(300)
+    // First set up a provider
+    await page.getByRole('combobox').first().click()
+    await page.waitForTimeout(500)
+    await page.locator('[role="option"]:has-text("OpenRouter")').click()
 
-    // Verify provider is added
-    await expect(page.getByRole('button', { name: 'Custom Provider', exact: true })).toBeVisible()
+    await page.locator('input[type="password"]').first().fill('sk-or-v1-test-key')
 
-    // Click delete button in the provider header
-    await page.getByRole('button', { name: 'Delete' }).first().click()
+    const modelInput = page.getByPlaceholder('Add model ID')
+    await modelInput.fill('gpt-4o')
+    await modelInput.press('Enter')
     await page.waitForTimeout(500)
 
-    // Verify provider is removed
-    await expect(page.getByRole('button', { name: 'Custom Provider', exact: true })).not.toBeVisible()
+    // Save with master password
+    await page.getByRole('button', { name: 'SAVE' }).click()
+
+    // Wait for dialog and fill it
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    const passwordInputs = dialog.locator('input[type="password"]')
+    await passwordInputs.first().fill('testpass123')
+    await passwordInputs.nth(1).fill('testpass123')
+    await dialog.locator('button[type="submit"]').click()
+
+    // Wait for dialog to close
+    await expect(dialog).not.toBeVisible({ timeout: 15000 })
+    await page.waitForTimeout(1000)
+
+    // Verify provider is saved
+    await expect(page.getByText('ACTIVE PROVIDER')).toBeVisible({ timeout: 10000 })
+
+    // Click delete
+    await page.getByRole('button', { name: 'DELETE' }).click()
+    await page.waitForTimeout(800)
+
+    // Verify provider is deleted
+    await expect(page.getByText('ACTIVE PROVIDER')).not.toBeVisible()
   })
 
-  test('should prevent duplicate provider names', async ({ page }) => {
-    // Add first provider
-    await page.getByRole('button', { name: 'Custom' }).click()
-    await page.waitForTimeout(300)
+  test('should validate master password length', async ({ page }) => {
+    // Select OpenRouter
+    await page.getByRole('combobox').first().click()
+    await page.waitForTimeout(500)
+    await page.locator('[role="option"]:has-text("OpenRouter")').click()
 
-    await page.getByRole('button', { name: 'Custom Provider', exact: true }).click()
-    await page.waitForTimeout(300)
+    // Enter API Key
+    await page.locator('input[type="password"]').first().fill('sk-or-v1-secret-key')
 
-    const nameInput = page.getByPlaceholder('MyOpenAI')
-    await nameInput.clear()
-    await nameInput.fill('DuplicateTest')
-
-    const modelInput = page.getByPlaceholder('Add new model (e.g., gpt-4o)')
+    // Add model
+    const modelInput = page.getByPlaceholder('Add model ID')
     await modelInput.fill('gpt-4o')
     await modelInput.press('Enter')
 
-    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    // Save
+    await page.getByRole('button', { name: 'SAVE' }).click()
+
+    // Master password dialog should appear
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 10000 })
     await page.waitForTimeout(500)
 
-    // Try to add another provider with same name
-    await page.getByRole('button', { name: 'Custom' }).click()
+    // Try short password
+    const passwordInputs = dialog.locator('input[type="password"]')
+    await passwordInputs.first().fill('short')
+    await passwordInputs.nth(1).fill('short')
+    await dialog.locator('button[type="submit"]').click()
+
+    // Should show error for short password (validation happens in dialog)
+    await expect(dialog.getByText('at least 8 characters')).toBeVisible()
+  })
+
+  test('should save custom provider with multiple models', async ({ page }) => {
+    // Select Custom provider type
+    await page.getByRole('combobox').first().click()
+    await page.waitForTimeout(500)
+    await page.locator('[role="option"]:has-text("Custom")').first().click()
+
+    // Enter API Key
+    await page.locator('input[type="password"]').first().fill('sk-test-custom-key')
+
+    // Enter Base URL
+    await page.getByPlaceholder('https://api.example.com/v1').fill('https://api.custom-ai.com/v1')
+
+    // Add first model
+    const modelInput = page.getByPlaceholder('Add model ID')
+    await modelInput.fill('gpt-4o-custom')
+    await modelInput.press('Enter')
+    await page.waitForTimeout(500)
+
+    // Add second model
+    await modelInput.fill('claude-3-custom')
+    await modelInput.press('Enter')
+    await page.waitForTimeout(500)
+
+    // Verify both models appear
+    await expect(page.locator('text=gpt-4o-custom').first()).toBeVisible()
+    await expect(page.locator('text=claude-3-custom').first()).toBeVisible()
+
+    // Select first model as default
+    await page.getByRole('combobox').nth(1).click()
     await page.waitForTimeout(300)
+    await page.locator('[role="option"]:has-text("gpt-4o-custom")').click()
 
-    // Try to save with duplicate name
-    await page.getByRole('button', { name: 'Custom Provider', exact: true }).click()
-    await page.waitForTimeout(300)
+    // Save the provider
+    await page.getByRole('button', { name: 'SAVE' }).click()
 
-    const newNameInput = page.getByPlaceholder('MyOpenAI').last()
-    await newNameInput.clear()
-    await newNameInput.fill('DuplicateTest')
+    // Wait for master password dialog
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 10000 })
 
-    await page.getByRole('button', { name: 'Save', exact: true }).last().click()
+    // Fill password fields
+    const passwordInputs = dialog.locator('input[type="password"]')
+    await passwordInputs.first().fill('testpass123')
+    await passwordInputs.nth(1).fill('testpass123')
+    await dialog.locator('button[type="submit"]').click()
 
-    // Verify error message about duplicate
-    await expect(page.getByText(/already exists/)).toBeVisible()
+    // Wait for dialog to close
+    await expect(dialog).not.toBeVisible({ timeout: 15000 })
+    await page.waitForTimeout(1000)
+
+    // Verify provider is saved
+    await expect(page.getByText('ACTIVE PROVIDER')).toBeVisible({ timeout: 10000 })
+    // Use more specific selector for provider name in the badge
+    await expect(page.locator('.font-medium', { hasText: 'Custom' })).toBeVisible()
+    await expect(page.getByText('gpt-4o-custom').first()).toBeVisible()
   })
 })

@@ -1,173 +1,145 @@
 import { useCallback, useEffect, useState } from 'react'
 import { providerConfigs } from '@/config/provider'
 import {
+  decryptWithPassword,
+  getSessionMasterPassword,
+  getCachedDecryptedValue,
+  cacheDecryptedValue,
+} from '@/lib/crypto'
+import {
   type LLMProvider,
-  PROVIDER_TEMPLATES,
+  type ProviderType,
+  OPENROUTER_CONFIG,
 } from '@/types/llm'
 
+const API_KEY_CACHE_KEY = 'provider:apikey'
+
 export function useLLMSettings() {
-  const [providers, setProviders] = useState<LLMProvider[]>([])
-  const [activeProviderId, setActiveProviderId] = useState<string | null>(null)
+  const [provider, setProvider] = useState<LLMProvider | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Load all providers from storage
-  const loadProviders = useCallback(async () => {
+  // Load provider from storage
+  const loadProvider = useCallback(async () => {
     setIsLoading(true)
     setError(null)
 
     try {
-      const [allProviders, activeId] = await Promise.all([
-        providerConfigs.getAllProviders(),
-        providerConfigs.getActiveProviderId(),
-      ])
-
-      if (activeId) {
-        setActiveProviderId(activeId)
+      const config = await providerConfigs.getProviderConfig()
+      if (!config) {
+        setProvider(null)
+        setIsLoading(false)
+        return
       }
 
-      // Add isActive flag based on activeProviderId
-      const providersWithActive = allProviders.map(p => ({
-        ...p,
-        isActive: p.id === activeId
-      }))
-      setProviders(providersWithActive)
+      // Check if we have encrypted API key
+      if (!config.encryptedApiKey) {
+        setProvider(null)
+        setIsLoading(false)
+        return
+      }
+
+      // Check session cache first
+      const cachedKey = getCachedDecryptedValue(API_KEY_CACHE_KEY)
+      if (cachedKey) {
+        setProvider(providerConfigs.buildProvider(config, cachedKey))
+        setIsLoading(false)
+        return
+      }
+
+      // Check session master password
+      const sessionPassword = getSessionMasterPassword()
+      if (sessionPassword) {
+        try {
+          const decryptedKey = await decryptWithPassword(config.encryptedApiKey, sessionPassword)
+          cacheDecryptedValue(API_KEY_CACHE_KEY, decryptedKey)
+          setProvider(providerConfigs.buildProvider(config, decryptedKey))
+          setIsLoading(false)
+          return
+        } catch {
+          // Session password invalid, will need to unlock
+        }
+      }
+
+      // We have config but need password to decrypt API key
+      setProvider(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load providers')
-      console.error('Failed to load providers:', err)
-      setProviders([])
+      setError(err instanceof Error ? err.message : 'Failed to load provider')
+      console.error('Failed to load provider:', err)
     } finally {
       setIsLoading(false)
     }
   }, [])
 
-  // Load providers on mount
+  // Load on mount
   useEffect(() => {
-    loadProviders()
-  }, [loadProviders])
+    loadProvider()
+  }, [loadProvider])
 
-  // Get active provider
-  const activeProvider = providers.find(p => p.id === activeProviderId) || null
-
-  // Set active provider
-  const setActiveProvider = useCallback(async (id: string | null) => {
+  // Unlock provider with master password
+  const unlockProvider = useCallback(async (password: string) => {
     try {
-      await providerConfigs.setActiveProviderId(id)
-      setActiveProviderId(id)
+      const config = await providerConfigs.getProviderConfig()
+      if (!config) return null
 
-      // Update local state to reflect active status
-      setProviders((prev) =>
-        prev.map((p) => ({
-          ...p,
-          isActive: p.id === id,
-        }))
-      )
+      if (!config.encryptedApiKey) return null
 
-      return true
+      const decryptedKey = await decryptWithPassword(config.encryptedApiKey, password)
+      cacheDecryptedValue(API_KEY_CACHE_KEY, decryptedKey)
+
+      const provider = providerConfigs.buildProvider(config, decryptedKey)
+      setProvider(provider)
+      return provider
     } catch (err) {
-      console.error('Failed to set active provider:', err)
-      throw err
+      console.error('Failed to unlock provider:', err)
+      throw new Error('Invalid master password')
     }
   }, [])
 
-  // Get a single provider by ID
-  const getProvider = useCallback(async (id: string): Promise<LLMProvider | null> => {
-    return providerConfigs.getProvider(id)
-  }, [])
-
-  // Save a provider
-  const saveProvider = useCallback(async (provider: LLMProvider) => {
+  // Delete provider
+  const deleteProvider = useCallback(async () => {
     try {
-      // Save the provider
-      await providerConfigs.saveProvider(provider)
-
-      // Update local state
-      setProviders((prev) => {
-        const index = prev.findIndex((p) => p.id === provider.id)
-        const providerWithActive = {
-          ...provider,
-          isActive: provider.id === activeProviderId
-        }
-        if (index >= 0) {
-          const updated = [...prev]
-          updated[index] = providerWithActive
-          return updated
-        }
-        return [...prev, providerWithActive]
-      })
-
-      return true
-    } catch (err) {
-      console.error('Failed to save provider:', err)
-      throw err
-    }
-  }, [activeProviderId])
-
-  // Delete a provider
-  const deleteProvider = useCallback(async (id: string) => {
-    try {
-      await providerConfigs.deleteProvider(id)
-
-      // If deleting active provider, clear local state
-      if (activeProviderId === id) {
-        setActiveProviderId(null)
-      }
-
-      // Update local state
-      setProviders((prev) => prev.filter((p) => p.id !== id))
-
-      return true
+      await providerConfigs.deleteProvider()
+      setProvider(null)
     } catch (err) {
       console.error('Failed to delete provider:', err)
       throw err
     }
-  }, [activeProviderId])
+  }, [])
 
-  // Create a new provider from template
-  const createProviderFromTemplate = useCallback(
-    (templateId: string, customId?: string): LLMProvider | null => {
-      const template = PROVIDER_TEMPLATES.find((t) => t.id === templateId)
-      if (!template) return null
+  // Get available models from OpenRouter
+  const fetchOpenRouterModels = useCallback(async (apiKey: string) => {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'LocalClaw',
+        },
+      })
 
-      return {
-        id: customId || `${template.id}-${Date.now()}`,
-        name: template.name,
-        baseURL: template.baseURL,
-        apiKey: '',
-        models: [...template.models],
-        defaultModel: template.defaultModel,
-        isActive: false,
+      if (!response.ok) {
+        throw new Error('Failed to fetch models')
       }
-    },
-    []
-  )
 
-  // Create a custom provider
-  const createCustomProvider = useCallback((): LLMProvider => {
-    const timestamp = Date.now()
-    return {
-      id: `custom${timestamp}`,
-      name: `CustomProvider${timestamp}`,
-      baseURL: '',
-      apiKey: '',
-      models: [],
-      defaultModel: '',
-      isActive: false,
+      const data = await response.json() as { data: Array<{ id: string; name?: string }> }
+      return data.data.map((m) => ({
+        id: m.id,
+        name: m.name || m.id,
+      }))
+    } catch (err) {
+      console.error('Failed to fetch OpenRouter models:', err)
+      throw err
     }
   }, [])
 
   return {
-    providers,
-    activeProvider,
-    activeProviderId,
+    provider,
     isLoading,
     error,
-    reload: loadProviders,
-    getProvider,
-    saveProvider,
+    reload: loadProvider,
+    unlockProvider,
     deleteProvider,
-    setActiveProvider,
-    createProviderFromTemplate,
-    createCustomProvider,
+    fetchOpenRouterModels,
   }
 }

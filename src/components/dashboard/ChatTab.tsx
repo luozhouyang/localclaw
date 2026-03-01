@@ -8,7 +8,7 @@ import { ThreadSidebar } from "@/components/chat/ThreadSidebar";
 import type { UIMessage, DynamicToolUIPart } from "ai";
 
 export function ChatTab() {
-  const { activeProvider } = useLLMSettings();
+  const { provider: activeProvider } = useLLMSettings();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
@@ -16,7 +16,7 @@ export function ChatTab() {
   const provider = activeProvider ? {
     baseURL: activeProvider.baseURL,
     apiKey: activeProvider.apiKey,
-    model: activeProvider.defaultModel,
+    model: activeProvider.model,
   } : null;
 
   const {
@@ -138,7 +138,7 @@ export function ChatTab() {
               </h2>
               {activeProvider ? (
                 <p className="text-xs text-orange-400/70 font-code">
-                  {activeProvider.name} • {activeProvider.defaultModel}
+                  {activeProvider.name} • {activeProvider.model}
                 </p>
               ) : (
                 <p className="text-xs text-stone-500 font-code">

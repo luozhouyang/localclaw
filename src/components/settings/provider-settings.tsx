@@ -1,9 +1,3 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,323 +8,370 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useLLMSettings } from "@/hooks/use-llm-settings";
-import { type LLMProvider, PROVIDER_TEMPLATES } from "@/types/llm";
+import { OPENROUTER_CONFIG, type ProviderType } from "@/types/llm";
+import { useMasterKey } from "@/hooks/use-master-key";
+import { encryptWithPassword, decryptWithPassword } from "@/lib/crypto";
+import { providerConfigs } from "@/config/provider";
+import { MasterPasswordDialog } from "@/components/masterkey/MasterPasswordDialog";
+import { ApiKeyInput } from "@/components/masterkey/ApiKeyInput";
+import { DegradedModeBanner } from "@/components/masterkey/DegradedModeBanner";
 import {
-  Plus,
-  Power,
   Save,
-  Cpu,
-  TestTube,
   Trash2,
-  X,
+  Power,
+  Loader2,
   AlertCircle,
   CheckCircle2,
-  Loader2,
+  Globe,
+  Cpu,
+  Plus,
+  X,
 } from "lucide-react";
-import { useState } from "react";
-import { ModelListEditor } from "./provider-model-list";
+import { useState, useEffect, useCallback } from "react";
 
-// Validate provider name: alphanumeric, hyphens and underscores allowed
-const isValidProviderName = (name: string): boolean => {
-  return /^[a-zA-Z0-9_-]+$/.test(name);
-};
-
-// Convert name to valid provider ID (lowercase)
-const nameToProviderId = (name: string): string => {
-  return name.toLowerCase();
-};
+interface StoredProvider {
+  id: ProviderType;
+  name: string;
+  baseURL: string;
+  apiKey: string;
+  models: string[];
+  defaultModel: string;
+  isActive: boolean;
+}
 
 export function LLMProviderSettings() {
+  // Master key management
   const {
-    providers,
-    activeProvider,
-    activeProviderId,
-    isLoading,
-    error,
-    saveProvider,
-    deleteProvider,
-    setActiveProvider,
-    createCustomProvider,
-  } = useLLMSettings();
+    masterKey,
+    isLoading: isMasterKeyLoading,
+    isLocked,
+    isDegradedMode,
+    browserType,
+    hasAcknowledged,
+    unlock,
+    setupMasterKey,
+    hasMasterKey,
+    acknowledgeWarning,
+  } = useMasterKey();
 
-  const [editingProviders, setEditingProviders] = useState<
-    Record<string, LLMProvider>
-  >({});
-  const [selectedTemplate, setSelectedTemplate] = useState("");
-  const [saveStatus, setSaveStatus] = useState<
-    Record<string, "idle" | "saving" | "saved" | "error">
-  >({});
-  const [testStatus, setTestStatus] = useState<
-    Record<string, "idle" | "testing" | "success" | "error">
-  >({});
+  // Provider state
+  const [provider, setProvider] = useState<StoredProvider | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Form state
+  const [providerType, setProviderType] = useState<ProviderType>('openrouter');
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [baseURL, setBaseURL] = useState('');
+  const [model, setModel] = useState('');
+  const [models, setModels] = useState<Array<{ id: string; name: string }>>([]);
+  const [newModelInput, setNewModelInput] = useState('');
+
+  // UI state
+  const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showMasterPasswordDialog, setShowMasterPasswordDialog] = useState(false);
+  const [masterPasswordMode, setMasterPasswordMode] = useState<'setup' | 'unlock'>('setup');
 
-  // Handle adding new provider from template
-  const handleAddFromTemplate = () => {
-    if (!selectedTemplate) return;
-    const template = PROVIDER_TEMPLATES.find((t) => t.id === selectedTemplate);
-    if (!template) return;
+  // Load provider config on mount
+  const loadProvider = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-    // Template name must be valid
-    if (!isValidProviderName(template.name)) {
-      setValidationError(
-        `Provider name must contain only letters, numbers, hyphens and underscores`,
-      );
-      return;
-    }
-
-    const providerId = nameToProviderId(template.name);
-
-    // Check if ID already exists
-    const existingIds = new Set([
-      ...providers.map((p) => p.id),
-      ...Object.keys(editingProviders),
-    ]);
-
-    if (existingIds.has(providerId)) {
-      setValidationError(`Provider "${template.name}" already exists`);
-      return;
-    }
-
-    const newProvider: LLMProvider = {
-      id: providerId,
-      name: template.name,
-      baseURL: template.baseURL,
-      apiKey: "",
-      models: [...template.models],
-      defaultModel: template.defaultModel,
-      isActive: false,
-    };
-
-    setEditingProviders((prev) => ({
-      ...prev,
-      [providerId]: newProvider,
-    }));
-    setSelectedTemplate("");
-    setValidationError(null);
-  };
-
-  // Handle adding custom provider
-  const handleAddCustom = () => {
-    const customProvider = createCustomProvider();
-
-    // Default custom provider name must be valid
-    if (!isValidProviderName(customProvider.name)) {
-      setValidationError(
-        `Provider name must contain only letters, numbers, hyphens and underscores. Please edit the name before saving.`,
-      );
-      // Still create it, but user needs to fix the name
-    }
-
-    const providerId = nameToProviderId(customProvider.name);
-
-    // Check if ID already exists
-    const existingIds = new Set([
-      ...providers.map((p) => p.id),
-      ...Object.keys(editingProviders),
-    ]);
-
-    if (existingIds.has(providerId)) {
-      setValidationError(`Provider "${customProvider.name}" already exists`);
-      return;
-    }
-
-    const newProvider = {
-      ...customProvider,
-      id: providerId,
-    };
-
-    setEditingProviders((prev) => ({
-      ...prev,
-      [providerId]: newProvider,
-    }));
-    setValidationError(null);
-  };
-
-  // Handle provider field changes
-  const handleProviderChange = (
-    id: string,
-    field: keyof LLMProvider,
-    value: string | string[] | boolean,
-  ) => {
-    setEditingProviders((prev) => {
-      const existingProvider = prev[id] || providers.find((p) => p.id === id);
-      if (!existingProvider) return prev;
-
-      const updatedProvider = {
-        ...existingProvider,
-        [field]: value,
-      };
-
-      // If name changed, check for conflicts but don't update id yet
-      // (id will be updated on save to avoid re-rendering issues)
-      if (field === "name" && typeof value === "string") {
-        const newId = nameToProviderId(value);
-        // Check if new id conflicts with existing providers
-        const existingIds = new Set([
-          ...providers.map((p) => p.id).filter((pid) => pid !== id),
-          ...Object.keys(editingProviders).filter((pid) => pid !== id),
-        ]);
-
-        if (existingIds.has(newId)) {
-          setValidationError(
-            `Provider name "${value}" conflicts with an existing provider`,
-          );
-        } else {
-          setValidationError(null);
+    try {
+      const config = await providerConfigs.getProviderConfig();
+      if (config) {
+        // If we have master key, decrypt the API key
+        let decryptedApiKey = '';
+        if (masterKey && config.encryptedApiKey) {
+          try {
+            decryptedApiKey = await decryptWithPassword(config.encryptedApiKey, masterKey);
+          } catch {
+            // Decryption failed, API key stays empty
+            console.warn('Failed to decrypt API key');
+          }
         }
-        // Note: id is not updated here to avoid re-rendering issues
-        // It will be updated on save
+
+        // Filter out empty model IDs
+        const loadedModels = (config.models || [config.defaultModel || '']).filter(m => m && m.trim() !== '');
+        const loadedDefaultModel = config.defaultModel || (loadedModels[0] || '');
+
+        setProvider({
+          id: config.id,
+          name: config.id === 'openrouter' ? OPENROUTER_CONFIG.name : 'Custom',
+          baseURL: config.baseURL,
+          apiKey: decryptedApiKey,
+          models: loadedModels,
+          defaultModel: loadedDefaultModel,
+          isActive: true,
+        });
+
+        setProviderType(config.id);
+        setBaseURL(config.baseURL);
+        setModels(loadedModels.map(m => ({ id: m, name: m })));
+        setModel(loadedDefaultModel);
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load provider');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [masterKey]);
 
-      return {
-        ...prev,
-        [id]: updatedProvider,
-      };
-    });
-  };
+  // Load provider when master key changes or on mount
+  useEffect(() => {
+    loadProvider();
+  }, [loadProvider]);
 
-  // Save provider
-  const handleSave = async (id: string) => {
-    const provider = editingProviders[id];
-    if (!provider) return;
+  const handleSave = async () => {
+    setValidationError(null);
 
-    // Validate name before saving
-    if (!isValidProviderName(provider.name)) {
-      setValidationError(
-        "Provider name must contain only letters, numbers, hyphens and underscores",
-      );
+    // Validation
+    if (providerType === 'custom') {
+      if (!baseURL.trim()) {
+        setValidationError('Base URL is required for custom provider');
+        return;
+      }
+    }
+
+    // Ensure at least one model is added for both provider types
+    if (models.length === 0) {
+      setValidationError('Please add at least one model');
       return;
     }
 
-    // Calculate the correct id based on name
-    const expectedId = nameToProviderId(provider.name);
-
-    // If this is a new provider (not yet in providers list), update the id to match name
-    const isNewProvider = !providers.find((p) => p.id === id);
-    const providerToSave = isNewProvider
-      ? { ...provider, id: expectedId }
-      : provider;
-
-    // If updating an existing provider and id would change, delete old and save new
-    if (!isNewProvider && expectedId !== provider.id) {
-      setValidationError(
-        "Cannot change name of saved provider. Delete and recreate to change the name.",
-      );
+    // Ensure a default model is selected
+    if (!model) {
+      setValidationError('Please select a default model');
       return;
     }
 
-    setSaveStatus((prev) => ({ ...prev, [id]: "saving" }));
-    try {
-      await saveProvider(providerToSave);
-      setSaveStatus((prev) => ({ ...prev, [id]: "saved" }));
-      setValidationError(null);
-      // Remove from editing state after a delay
-      setTimeout(() => {
-        setEditingProviders((prev) => {
-          const updated = { ...prev };
-          delete updated[id];
-          return updated;
-        });
-        setSaveStatus((prev) => {
-          const updated = { ...prev };
-          delete updated[id];
-          return updated;
-        });
-      }, 1000);
-    } catch {
-      setSaveStatus((prev) => ({ ...prev, [id]: "error" }));
+    // Ensure all models have valid non-empty IDs
+    const invalidModels = models.filter(m => !m.id || m.id.trim() === '');
+    if (invalidModels.length > 0) {
+      setValidationError('Invalid model detected. Please remove empty models and try again.');
+      return;
     }
+
+    // Check if we need API key
+    const hasExistingKey = provider !== null;
+    const isApiKeyEmpty = apiKeyInput === '' || apiKeyInput === '********************';
+
+    if (!hasExistingKey && isApiKeyEmpty) {
+      setValidationError('API Key is required');
+      return;
+    }
+
+    // Check if we have master key
+    if (!hasMasterKey()) {
+      setMasterPasswordMode('setup');
+      setShowMasterPasswordDialog(true);
+      return;
+    }
+
+    if (!masterKey) {
+      setMasterPasswordMode('unlock');
+      setShowMasterPasswordDialog(true);
+      return;
+    }
+
+    // Proceed with save
+    await performSave();
   };
 
-  // Test connection
-  const handleTest = async (id: string) => {
-    const provider = editingProviders[id] || providers.find((p) => p.id === id);
-    if (!provider) return;
+  const performSave = async (explicitPassword?: string) => {
+    setIsSaving(true);
+    setValidationError(null);
 
-    setTestStatus((prev) => ({ ...prev, [id]: "testing" }));
     try {
-      // Simple test - just check if required fields are filled
-      if (!provider.baseURL || !provider.apiKey) {
-        throw new Error("Base URL and API Key are required");
+      // Use explicit password if provided (from dialog), otherwise use state
+      const keyToUse = explicitPassword || masterKey;
+      if (!keyToUse) {
+        throw new Error('Master key not available');
       }
-      // Simulate API test delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setTestStatus((prev) => ({ ...prev, [id]: "success" }));
-    } catch {
-      setTestStatus((prev) => ({ ...prev, [id]: "error" }));
-    }
-  };
 
-  // Delete provider
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteProvider(id);
-      setEditingProviders((prev) => {
-        const updated = { ...prev };
-        delete updated[id];
-        return updated;
+      // Determine API key to save
+      let apiKeyToSave: string;
+      if (apiKeyInput && apiKeyInput !== '********************') {
+        // User entered new API key
+        apiKeyToSave = apiKeyInput;
+      } else if (provider?.apiKey) {
+        // Use existing decrypted API key
+        apiKeyToSave = provider.apiKey;
+      } else {
+        throw new Error('API Key is required');
+      }
+
+      // Encrypt API key
+      const encryptedApiKey = await encryptWithPassword(apiKeyToSave, keyToUse);
+
+      // Prepare models array and default model for saving
+      const modelsToSave = models.length > 0 ? models.map(m => m.id) : [providerType === 'openrouter' ? OPENROUTER_CONFIG.defaultModel : ''];
+      const defaultModelToSave = model || modelsToSave[0];
+
+      // Save config
+      const savedConfig = await providerConfigs.saveProviderConfig(
+        providerType,
+        baseURL,
+        modelsToSave,
+        defaultModelToSave,
+        encryptedApiKey
+      );
+
+      // Update local state
+      setProvider({
+        id: savedConfig.id,
+        name: savedConfig.id === 'openrouter' ? OPENROUTER_CONFIG.name : 'Custom',
+        baseURL: savedConfig.baseURL,
+        apiKey: apiKeyToSave,
+        models: savedConfig.models,
+        defaultModel: savedConfig.defaultModel,
+        isActive: true,
       });
-    } catch {
-      // Error handled in hook
+
+      // Clear input (shows placeholder)
+      setApiKeyInput('');
+
+      // Show degraded mode warning if applicable
+      if (isDegradedMode) {
+        setValidationError('Provider saved. Note: Refresh page will require re-entering master password.');
+      }
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : 'Failed to save');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // Handle activating a provider
-  const handleActivate = async (id: string) => {
+  const handleMasterPasswordConfirm = async (password: string, saveToBrowser: boolean) => {
+    if (masterPasswordMode === 'setup') {
+      try {
+        await setupMasterKey(password, saveToBrowser);
+      } catch (err) {
+        setValidationError(err instanceof Error ? err.message : 'Failed to setup master key');
+        return;
+      }
+    } else {
+      const success = await unlock(password);
+      if (!success) {
+        setValidationError('Invalid password');
+        return;
+      }
+    }
+
+    setShowMasterPasswordDialog(false);
+
+    // Proceed with save, passing the password explicitly since state may not be updated yet
+    await performSave(password);
+  };
+
+  const handleDelete = async () => {
     try {
-      await setActiveProvider(id);
-    } catch {
-      // Error handled in hook
+      await providerConfigs.deleteProvider();
+      setProvider(null);
+      setProviderType('openrouter');
+      setApiKeyInput('');
+      setBaseURL('');
+      setModel('');
+      setModels([]);
+    } catch (err) {
+      console.error('Failed to delete provider:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete provider');
     }
   };
 
-  // Handle deactivating the active provider
-  const handleDeactivate = async () => {
+  // Model management functions
+  const handleAddModel = () => {
+    const trimmedInput = newModelInput.trim();
+
+    // Validate: prevent empty input
+    if (!trimmedInput) {
+      setValidationError('Model ID cannot be empty');
+      return;
+    }
+
+    // Validate: prevent whitespace-only or invalid characters
+    if (/^\s*$/.test(trimmedInput)) {
+      setValidationError('Model ID cannot contain only whitespace');
+      return;
+    }
+
+    const newModel = {
+      id: trimmedInput,
+      name: trimmedInput,
+    };
+
+    // Check if model already exists
+    if (models.some(m => m.id === newModel.id)) {
+      setValidationError('Model already exists');
+      return;
+    }
+
+    // Filter out any invalid existing models and add new one
+    setModels(prev => [...prev.filter(m => m.id && m.id.trim() !== ''), newModel]);
+    setNewModelInput('');
+    setValidationError(null);
+
+    // Auto select the newly added model
+    setModel(newModel.id);
+  };
+
+  const handleRemoveModel = (modelId: string) => {
+    setModels(prev => prev.filter(m => m.id && m.id.trim() !== '' && m.id !== modelId));
+    if (model === modelId) {
+      setModel('');
+    }
+  };
+
+  const handleTest = async () => {
+    setIsTesting(true);
+    setTestResult(null);
+
     try {
-      await setActiveProvider(null);
+      const apiKeyToTest = apiKeyInput && apiKeyInput !== '********************'
+        ? apiKeyInput
+        : provider?.apiKey;
+
+      if (!apiKeyToTest) {
+        throw new Error('API Key is required');
+      }
+      if (providerType === 'custom' && !baseURL) {
+        throw new Error('Base URL is required');
+      }
+
+      // Simulate API test
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setTestResult('success');
     } catch {
-      // Error handled in hook
+      setTestResult('error');
+    } finally {
+      setIsTesting(false);
     }
   };
 
-  // Cancel editing
-  const handleCancel = (id: string) => {
-    setEditingProviders((prev) => {
-      const updated = { ...prev };
-      delete updated[id];
-      return updated;
-    });
-  };
-
-  // Start editing existing provider
-  const handleEdit = (provider: LLMProvider) => {
-    setEditingProviders((prev) => ({
-      ...prev,
-      [provider.id]: { ...provider },
-    }));
-  };
-
-  const displayProviders = [
-    ...providers,
-    ...Object.values(editingProviders).filter(
-      (p) => !providers.find((ep) => ep.id === p.id),
-    ),
-  ];
-
-  if (isLoading) {
+  // Show loading state
+  if (isLoading || isMasterKeyLoading) {
     return (
       <div className="glass rounded-xl p-8 text-center">
         <Loader2 className="w-8 h-8 text-orange-400 animate-spin mx-auto mb-4" />
-        <p className="text-stone-400 font-code">INITIALIZING SYSTEM...</p>
+        <p className="text-stone-400 font-code">INITIALIZING...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header Card */}
+      {/* Degraded Mode Banner (Firefox/Safari) */}
+      {isDegradedMode && !hasAcknowledged && (
+        <DegradedModeBanner
+          browserType={browserType}
+          onAcknowledge={acknowledgeWarning}
+        />
+      )}
+
+      {/* Header */}
       <div className="glass-strong rounded-xl p-6 border-glow">
         <div className="flex items-center gap-3 mb-2">
           <div className="relative">
@@ -342,7 +383,7 @@ export function LLMProviderSettings() {
           </h2>
         </div>
         <p className="text-stone-400 text-sm font-code">
-          Configure AI model providers for agent communication
+          Configure OpenRouter or a custom OpenAI-compatible provider
         </p>
       </div>
 
@@ -356,8 +397,8 @@ export function LLMProviderSettings() {
         </div>
       )}
 
-      {/* Active Provider Indicator */}
-      {activeProvider && (
+      {/* Active Provider Badge */}
+      {provider && !isLocked && (
         <div className="flex items-center gap-3 p-4 rounded-lg glass border border-amber-500/30 glow-amber">
           <div className="relative">
             <Power className="w-5 h-5 text-amber-400" />
@@ -368,318 +409,316 @@ export function LLMProviderSettings() {
               ACTIVE PROVIDER
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-white font-medium">
-                {activeProvider.name}
-              </span>
-              <span className="text-xs text-stone-500 font-code">
-                {activeProvider.defaultModel}
-              </span>
+              <span className="text-white font-medium">{provider.name}</span>
+              <span className="text-xs text-stone-500 font-code">{provider.defaultModel}</span>
             </div>
           </div>
           <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
         </div>
       )}
 
-      {/* Add Provider Section */}
-      <div className="glass rounded-xl p-6">
-        <h3 className="font-display text-sm font-bold text-orange-400 mb-4 tracking-wider">
-          ADD PROVIDER
-        </h3>
-        <div className="flex gap-3">
-          <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-            <SelectTrigger className="flex-1 bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code">
-              <SelectValue placeholder="Select provider template" />
+      {/* Locked Warning */}
+      {isLocked && provider && (
+        <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+          <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-amber-400 text-sm font-code">
+              Provider is locked. Enter master password to unlock.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              setMasterPasswordMode('unlock');
+              setShowMasterPasswordDialog(true);
+            }}
+            className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/50 font-code text-xs"
+          >
+            Unlock
+          </Button>
+        </div>
+      )}
+
+      {/* Provider Configuration Form */}
+      <div className="glass rounded-xl p-6 space-y-6">
+        {/* Provider Type */}
+        <div className="space-y-2">
+          <Label className="text-orange-400 font-code text-xs tracking-wider">
+            PROVIDER TYPE
+          </Label>
+          <Select
+            value={providerType}
+            onValueChange={(v) => setProviderType(v as ProviderType)}
+          >
+            <SelectTrigger className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent className="glass-strong border-orange-500/30">
-              {PROVIDER_TEMPLATES.map((template) => (
-                <SelectItem
-                  key={template.id}
-                  value={template.id}
-                  className="font-code text-stone-300 focus:bg-orange-500/20 focus:text-orange-400"
-                >
-                  {template.name}
-                </SelectItem>
-              ))}
+              <SelectItem
+                value="openrouter"
+                className="font-code text-stone-300 focus:bg-orange-500/20 focus:text-orange-400"
+              >
+                OpenRouter
+              </SelectItem>
+              <SelectItem
+                value="custom"
+                className="font-code text-stone-300 focus:bg-orange-500/20 focus:text-orange-400"
+              >
+                Custom (OpenAI-compatible)
+              </SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        {/* API Key with masking */}
+        <ApiKeyInput
+          value={apiKeyInput}
+          hasExistingKey={provider !== null}
+          onChange={setApiKeyInput}
+          placeholder={providerType === 'openrouter' ? 'sk-or-v1-...' : 'sk-...'}
+        />
+
+        {/* Custom Provider Fields */}
+        {providerType === 'custom' && (
+          <>
+            <div className="space-y-2">
+              <Label className="text-orange-400 font-code text-xs tracking-wider flex items-center gap-2">
+                <Globe className="w-3 h-3" />
+                BASE URL
+              </Label>
+              <Input
+                value={baseURL}
+                onChange={(e) => setBaseURL(e.target.value)}
+                placeholder="https://api.example.com/v1"
+                className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code text-white placeholder:text-stone-600"
+              />
+              <p className="text-xs text-stone-500 font-code">
+                The base URL for your OpenAI-compatible API endpoint
+              </p>
+            </div>
+
+            {/* Custom Provider Model Management */}
+            <div className="space-y-4">
+              <Label className="text-orange-400 font-code text-xs tracking-wider">
+                MODELS
+              </Label>
+
+              {/* Model Selector */}
+              <Select value={model || undefined} onValueChange={setModel}>
+                <SelectTrigger className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code">
+                  <SelectValue placeholder="Select or add a model" />
+                </SelectTrigger>
+                <SelectContent className="glass-strong border-orange-500/30 max-h-64">
+                  {models.filter(m => m.id && m.id.trim() !== '').map((m) => (
+                    <SelectItem
+                      key={m.id}
+                      value={m.id}
+                      className="font-code text-stone-300 focus:bg-orange-500/20 focus:text-orange-400"
+                    >
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Add New Model */}
+              <div className="flex gap-2">
+                <Input
+                  value={newModelInput}
+                  onChange={(e) => setNewModelInput(e.target.value)}
+                  placeholder="Add model ID (e.g., gpt-4o, claude-3-sonnet)"
+                  className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code text-white placeholder:text-stone-600 text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddModel();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={handleAddModel}
+                  disabled={!newModelInput.trim()}
+                  className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 font-code px-3"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Model List */}
+              {models.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-stone-500 font-code">Available models:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {models.map((m) => (
+                      <div
+                        key={m.id}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-code ${
+                          model === m.id
+                            ? 'bg-orange-500/30 text-orange-400 border border-orange-500/50'
+                            : 'bg-stone-800/50 text-stone-400 border border-stone-700'
+                        }`}
+                      >
+                        <span>{m.name}</span>
+                        <button
+                          onClick={() => handleRemoveModel(m.id)}
+                          className="hover:text-red-400 ml-1"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-stone-500 font-code">
+                Add model IDs to the list. Select one as default. Click X to remove.
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* Model Selection */}
+        {providerType === 'openrouter' && (
+          <div className="space-y-4">
+            <Label className="text-orange-400 font-code text-xs tracking-wider">
+              MODEL
+            </Label>
+
+            {/* Model Selector */}
+            <Select value={model || undefined} onValueChange={setModel}>
+              <SelectTrigger className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code">
+                <SelectValue placeholder={`Select or add a model`} />
+              </SelectTrigger>
+              <SelectContent className="glass-strong border-orange-500/30 max-h-64">
+                {models.filter(m => m.id && m.id.trim() !== '').map((m) => (
+                  <SelectItem
+                    key={m.id}
+                    value={m.id}
+                    className="font-code text-stone-300 focus:bg-orange-500/20 focus:text-orange-400"
+                  >
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Add New Model */}
+            <div className="flex gap-2">
+              <Input
+                value={newModelInput}
+                onChange={(e) => setNewModelInput(e.target.value)}
+                placeholder="Add model ID (e.g., anthropic/claude-3.5-sonnet)"
+                className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code text-white placeholder:text-stone-600 text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddModel();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                onClick={handleAddModel}
+                disabled={!newModelInput.trim()}
+                className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 font-code px-3"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Model List */}
+            {models.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs text-stone-500 font-code">Available models:</p>
+                <div className="flex flex-wrap gap-2">
+                  {models.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-code ${
+                        model === m.id
+                          ? 'bg-orange-500/30 text-orange-400 border border-orange-500/50'
+                          : 'bg-stone-800/50 text-stone-400 border border-stone-700'
+                      }`}
+                    >
+                      <span>{m.name}</span>
+                      <button
+                        onClick={() => handleRemoveModel(m.id)}
+                        className="hover:text-red-400 ml-1"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-stone-500 font-code">
+              Add model IDs to the list. Select one to use it. Click X to remove.
+            </p>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-4 border-t border-orange-500/20">
           <Button
-            onClick={handleAddFromTemplate}
-            disabled={!selectedTemplate}
-            className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 hover:glow-orange font-code"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 font-code"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            ADD
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            {isSaving ? 'SAVING...' : 'SAVE'}
           </Button>
+
           <Button
             variant="outline"
-            onClick={handleAddCustom}
-            className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 font-code"
+            onClick={handleTest}
+            disabled={isTesting}
+            className={`font-code ${
+              testResult === 'success'
+                ? 'border-amber-500/50 text-amber-400 bg-amber-400/10'
+                : testResult === 'error'
+                  ? 'border-red-500/50 text-red-400 bg-red-500/10'
+                  : 'border-stone-600 text-stone-400 hover:bg-stone-800'
+            }`}
           >
-            CUSTOM
+            {isTesting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : testResult === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+            ) : (
+              'TEST'
+            )}
           </Button>
+
+          {provider && (
+            <Button
+              variant="outline"
+              onClick={handleDelete}
+              className="border-red-500/30 text-red-400 hover:bg-red-500/10 font-code ml-auto"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              DELETE
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Providers List */}
-      {displayProviders.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center border-dashed border-2 border-orange-500/20">
-          <Cpu className="w-12 h-12 text-orange-400/30 mx-auto mb-4" />
-          <p className="text-stone-500 font-code text-sm">
-            NO PROVIDERS CONFIGURED
-          </p>
-          <p className="text-stone-600 text-xs mt-1">
-            Add a provider above to initialize AI capabilities
-          </p>
-        </div>
-      ) : (
-        <Accordion type="multiple" className="space-y-3">
-          {displayProviders.map((provider) => {
-            const isEditing = editingProviders[provider.id] !== undefined;
-            const editingProvider = isEditing
-              ? editingProviders[provider.id]
-              : provider;
-            const isActive = provider.id === activeProviderId;
-
-            return (
-              <AccordionItem
-                key={provider.id}
-                value={provider.id}
-                className={`glass rounded-xl border overflow-hidden transition-all duration-300 ${
-                  isActive
-                    ? "border-amber-500/50 glow-amber"
-                    : "border-orange-500/20 hover:border-orange-500/40"
-                }`}
-              >
-                <div className="flex items-center justify-between px-4 py-3">
-                  <AccordionTrigger className="hover:no-underline flex-1 [&[data-state=open]>svg]:rotate-180">
-                    <div className="flex items-center gap-3 text-left">
-                      {isActive ? (
-                        <div className="relative">
-                          <Power className="w-4 h-4 text-amber-400" />
-                          <div className="absolute inset-0 blur-md bg-amber-400/50 -z-10" />
-                        </div>
-                      ) : (
-                        <div className="w-4 h-4 rounded-full border border-stone-600" />
-                      )}
-                      <span className="font-display text-white tracking-wide">
-                        {editingProvider.name}
-                      </span>
-                      {isActive && (
-                        <span className="text-xs bg-amber-400/20 text-amber-400 px-2 py-0.5 rounded font-code border border-amber-400/30">
-                          ACTIVE
-                        </span>
-                      )}
-                    </div>
-                  </AccordionTrigger>
-                  <div className="flex items-center gap-1">
-                    {/* Activate/Deactivate Button */}
-                    {isActive ? (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-amber-400 hover:text-amber-400 hover:bg-amber-400/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeactivate();
-                        }}
-                        title="Deactivate"
-                      >
-                        <Power className="w-4 h-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-stone-500 hover:text-orange-400 hover:bg-orange-500/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleActivate(provider.id);
-                        }}
-                        title="Activate"
-                      >
-                        <Power className="w-4 h-4" />
-                      </Button>
-                    )}
-                    {/* Delete Button */}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-stone-500 hover:text-red-400 hover:bg-red-500/10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(provider.id);
-                      }}
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                <AccordionContent className="pb-4 px-4">
-                  <div className="space-y-4 pt-2 border-t border-orange-500/10">
-                    {/* Provider Name */}
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor={`${provider.id}-name`}
-                        className="text-orange-400 font-code text-xs tracking-wider"
-                      >
-                        DISPLAY NAME
-                      </Label>
-                      <Input
-                        id={`${provider.id}-name`}
-                        value={editingProvider.name}
-                        onChange={(e) =>
-                          handleProviderChange(
-                            provider.id,
-                            "name",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="MyOpenAI"
-                        className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code text-white placeholder:text-stone-600"
-                      />
-                      <p className="text-xs text-stone-500 font-code">
-                        Letters, numbers, hyphens (-) and underscores (_) allowed
-                      </p>
-                    </div>
-
-                    {/* Base URL */}
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor={`${provider.id}-baseurl`}
-                        className="text-orange-400 font-code text-xs tracking-wider"
-                      >
-                        BASE URL
-                      </Label>
-                      <Input
-                        id={`${provider.id}-baseurl`}
-                        value={editingProvider.baseURL}
-                        onChange={(e) =>
-                          handleProviderChange(
-                            provider.id,
-                            "baseURL",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="https://api.openai.com/v1"
-                        className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code text-white placeholder:text-stone-600"
-                      />
-                    </div>
-
-                    {/* API Key */}
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor={`${provider.id}-apikey`}
-                        className="text-orange-400 font-code text-xs tracking-wider"
-                      >
-                        API KEY
-                      </Label>
-                      <Input
-                        id={`${provider.id}-apikey`}
-                        type="password"
-                        value={editingProvider.apiKey}
-                        onChange={(e) =>
-                          handleProviderChange(
-                            provider.id,
-                            "apiKey",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="sk-..."
-                        className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code text-white placeholder:text-stone-600"
-                      />
-                    </div>
-
-                    {/* Models */}
-                    <ModelListEditor
-                      models={editingProvider.models}
-                      defaultModel={editingProvider.defaultModel}
-                      onModelsChange={(models) =>
-                        handleProviderChange(provider.id, "models", models)
-                      }
-                      onDefaultModelChange={(model) =>
-                        handleProviderChange(
-                          provider.id,
-                          "defaultModel",
-                          model,
-                        )
-                      }
-                    />
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 pt-2 flex-wrap">
-                      {isEditing ? (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => handleSave(provider.id)}
-                            disabled={saveStatus[provider.id] === "saving"}
-                            className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 font-code"
-                          >
-                            {saveStatus[provider.id] === "saved" ? (
-                              <CheckCircle2 className="w-4 h-4 mr-2" />
-                            ) : saveStatus[provider.id] === "saving" ? (
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                              <Save className="w-4 h-4 mr-2" />
-                            )}
-                            {saveStatus[provider.id] === "saved"
-                              ? "SAVED!"
-                              : saveStatus[provider.id] === "saving"
-                                ? "SAVING..."
-                                : "SAVE"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleCancel(provider.id)}
-                            className="border-stone-600 text-stone-400 hover:bg-stone-800 font-code"
-                          >
-                            <X className="w-4 h-4 mr-2" />
-                            CANCEL
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(provider)}
-                          className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 font-code"
-                        >
-                          EDIT
-                        </Button>
-                      )}
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleTest(provider.id)}
-                        disabled={testStatus[provider.id] === "testing"}
-                        className={`font-code ${
-                          testStatus[provider.id] === "success"
-                            ? "border-amber-500/50 text-amber-400 bg-amber-400/10"
-                            : testStatus[provider.id] === "error"
-                              ? "border-red-500/50 text-red-400 bg-red-500/10"
-                              : "border-stone-600 text-stone-400 hover:bg-stone-800"
-                        }`}
-                      >
-                        <TestTube className="w-4 h-4 mr-2" />
-                        {testStatus[provider.id] === "success"
-                          ? "CONNECTED!"
-                          : testStatus[provider.id] === "error"
-                            ? "FAILED"
-                            : testStatus[provider.id] === "testing"
-                              ? "TESTING..."
-                              : "TEST"}
-                      </Button>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
-      )}
+      {/* Master Password Dialog */}
+      <MasterPasswordDialog
+        open={showMasterPasswordDialog}
+        onOpenChange={setShowMasterPasswordDialog}
+        onConfirm={handleMasterPasswordConfirm}
+        mode={masterPasswordMode}
+        browserType={browserType}
+        isDegradedMode={isDegradedMode}
+      />
     </div>
   );
 }
