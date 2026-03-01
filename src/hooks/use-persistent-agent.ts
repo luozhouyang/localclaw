@@ -2,8 +2,16 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import type { UIMessage } from 'ai';
 import { generateId } from '@/lib/chat-utils';
 import { threadManager } from '@/chat/thread-manager';
+import { taskScheduler } from '@/tasks';
+import { taskStore } from '@/tasks/store';
 import { agentLoop } from '@/agent/loop';
 import type { Thread } from '@/chat/types';
+
+// Lazy import memoryManager (client-side only)
+async function getMemoryManager() {
+  const { memoryManager } = await import('@/memory/manager');
+  return memoryManager;
+}
 
 interface LLMProvider {
   baseURL: string;
@@ -194,6 +202,42 @@ export function usePersistentAgent(
               // Save completed assistant message
               if (assistantMessage) {
                 await threadManager.appendMessage(options.threadId, assistantMessage);
+
+                // Check if we should trigger summary generation (every 20 messages)
+                const messageCount = await threadManager.getMessageCount(options.threadId);
+                if (messageCount % 20 === 0) {
+                  const existingTasks = await taskStore.findTasks({
+                    type: 'generate_summary',
+                    status: 'pending',
+                  });
+                  const alreadyPending = existingTasks.some(
+                    (t) => (t.input as { threadId?: string })?.threadId === options.threadId
+                  );
+                  if (!alreadyPending) {
+                    await taskScheduler.schedule(
+                      'generate_summary',
+                      { threadId: options.threadId },
+                      { priority: 'low', autoStart: true }
+                    );
+                  }
+                }
+
+                // Extract facts from assistant message
+                const textContent = assistantMessage.parts
+                  .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+                  .map((p) => p.text)
+                  .join(' ');
+                if (textContent.length > 50) {
+                  const memoryManager = await getMemoryManager();
+                  const facts = memoryManager.extractFactsFromMessage(
+                    assistantMessage.id,
+                    textContent,
+                    Date.now()
+                  );
+                  for (const fact of facts) {
+                    await memoryManager.addFact(options.threadId, fact);
+                  }
+                }
               }
               break;
             }

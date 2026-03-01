@@ -27,10 +27,47 @@ export interface ThreadMessage {
   order: number;
 }
 
+// Thread Summary
+export interface ThreadSummary {
+  version: 1;
+  generatedAt: number;
+  messageRange: {
+    start: number;
+    end: number;
+  };
+  content: string;
+  tokenCount: number;
+}
+
+// Fact types
+export type FactType = 'file' | 'command' | 'decision' | 'preference' | 'error' | 'todo';
+
+export interface ThreadFact {
+  id: string;
+  type: FactType;
+  content: string;
+  messageId: string;
+  timestamp: number;
+  confidence: number;
+  verified: boolean;
+}
+
+export interface ThreadFacts {
+  version: 1;
+  updatedAt: number;
+  facts: ThreadFact[];
+}
+
 // Storage paths
 export const CHAT_PATHS = {
   THREAD_INDEX: '/chat/threads.json',
   threadDir: (threadId: string) => `/chat/threads/${threadId}`,
   threadMetadata: (threadId: string) => `/chat/threads/${threadId}/metadata.json`,
   threadMessages: (threadId: string) => `/chat/threads/${threadId}/messages.jsonl`,
+};
+
+// Memory paths
+export const MEMORY_PATHS = {
+  summary: (threadId: string) => `/chat/threads/${threadId}/summary.json`,
+  facts: (threadId: string) => `/chat/threads/${threadId}/facts.json`,
 };

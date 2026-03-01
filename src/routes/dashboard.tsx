@@ -6,11 +6,19 @@ import { TasksTab } from '@/components/dashboard/TasksTab'
 import { SkillsTab } from '@/components/dashboard/SkillsTab'
 import { TerminalTab } from '@/components/dashboard/TerminalTab'
 import { SettingsTab } from '@/components/dashboard/SettingsTab'
-import { MessageSquare, FolderOpen, CheckSquare, Puzzle, Settings, Terminal } from 'lucide-react'
+import { MemoryTab } from '@/components/dashboard/MemoryTab'
+import { MessageSquare, FolderOpen, CheckSquare, Puzzle, Settings, Terminal, Brain } from 'lucide-react'
 import { useEffect } from 'react'
 import { initializeFilesystem } from '@/config/agent-fs'
 import { taskScheduler } from '@/tasks'
-import '@/tasks/definitions'
+
+// Dynamic import for task definitions - client-side only
+let taskDefinitionsLoaded = false
+async function loadTaskDefinitions() {
+  if (taskDefinitionsLoaded || typeof window === 'undefined') return
+  await import('@/tasks/definitions')
+  taskDefinitionsLoaded = true
+}
 
 export const Route = createFileRoute('/dashboard')({
   component: Dashboard,
@@ -23,6 +31,8 @@ function Dashboard() {
     const init = async () => {
       try {
         await initializeFilesystem()
+        // Load task definitions dynamically (client-side only)
+        await loadTaskDefinitions()
         await taskScheduler.initialize()
         console.log('[Dashboard] Task system initialized')
       } catch (err) {
@@ -63,7 +73,7 @@ function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="chat" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 lg:w-[700px] glass-panel p-1 gap-1">
+          <TabsList className="grid w-full grid-cols-7 lg:w-[800px] glass-panel p-1 gap-1">
             <TabsTrigger
               value="chat"
               className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
@@ -85,6 +95,14 @@ function Dashboard() {
               <CheckSquare className="w-4 h-4" />
               <span className="hidden sm:inline">TASKS</span>
             </TabsTrigger>
+            <TabsTrigger
+              value="memory"
+              className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
+            >
+              <Brain className="w-4 h-4" />
+              <span className="hidden sm:inline">MEMORY</span>
+            </TabsTrigger>
+
             <TabsTrigger
               value="skills"
               className="flex items-center gap-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 data-[state=active]:border-orange-500/50 border border-transparent rounded-md transition-all duration-300 font-code text-sm"
@@ -119,6 +137,10 @@ function Dashboard() {
 
             <TabsContent value="tasks" className="m-0">
               <TasksTab />
+            </TabsContent>
+
+            <TabsContent value="memory" className="m-0">
+              <MemoryTab />
             </TabsContent>
 
             <TabsContent value="skills" className="m-0">

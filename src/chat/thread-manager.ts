@@ -204,6 +204,12 @@ class ThreadManager {
     const text = textPart.text;
     return text.length > 30 ? text.slice(0, 30) + '...' : text;
   }
+
+  // Get message count for a thread
+  async getMessageCount(threadId: string): Promise<number> {
+    const thread = await this.getThread(threadId);
+    return thread?.messageCount ?? 0;
+  }
 }
 
 // Singleton instance
