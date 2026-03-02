@@ -28,7 +28,7 @@ interface UsePersistentAgentReturn {
   messages: UIMessage[];
   isLoading: boolean;
   error: Error | null;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, overrideThreadId?: string) => Promise<void>;
   stop: () => void;
   clear: () => Promise<void>;
   currentThread: Thread | null;
@@ -72,8 +72,9 @@ export function usePersistentAgent(
   }, [options.threadId]);
 
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!options.threadId || !options.provider) {
+    async (content: string, overrideThreadId?: string) => {
+      const threadId = overrideThreadId || options.threadId;
+      if (!threadId || !options.provider) {
         setError(new Error('No thread or provider configured'));
         return;
       }
@@ -90,7 +91,7 @@ export function usePersistentAgent(
       };
 
       // Save and display user message
-      await threadManager.appendMessage(options.threadId, userMessage);
+      await threadManager.appendMessage(threadId, userMessage);
       setMessages((prev) => [...prev, userMessage]);
 
       // Build message history for LLM
@@ -113,10 +114,13 @@ export function usePersistentAgent(
         // Run agent loop
         let assistantMessage: UIMessage | null = null;
 
+        console.log('[sendMessage] Starting agentLoop with historyMessages:', historyMessages);
+
         for await (const event of agentLoop({
           provider: options.provider,
           messages: historyMessages,
         })) {
+          console.log('[sendMessage] Received event:', event.type, event);
           if (abortRef.current?.signal.aborted) {
             break;
           }
@@ -201,17 +205,17 @@ export function usePersistentAgent(
             case 'done': {
               // Save completed assistant message
               if (assistantMessage) {
-                await threadManager.appendMessage(options.threadId, assistantMessage);
+                await threadManager.appendMessage(threadId, assistantMessage);
 
                 // Check if we should trigger summary generation (every 20 messages)
-                const messageCount = await threadManager.getMessageCount(options.threadId);
+                const messageCount = await threadManager.getMessageCount(threadId);
                 if (messageCount % 20 === 0) {
                   const existingTasks = await taskStore.findTasks({
                     type: 'generate_summary',
                     status: 'pending',
                   });
                   const alreadyPending = existingTasks.some(
-                    (t) => (t.input as { threadId?: string })?.threadId === options.threadId
+                    (t) => (t.input as { threadId?: string })?.threadId === threadId
                   );
                   if (!alreadyPending) {
                     await taskScheduler.schedule(
@@ -235,7 +239,7 @@ export function usePersistentAgent(
                     Date.now()
                   );
                   for (const fact of facts) {
-                    await memoryManager.addFact(options.threadId, fact);
+                    await memoryManager.addFact(threadId, fact);
                   }
                 }
               }
@@ -244,6 +248,7 @@ export function usePersistentAgent(
           }
         }
       } catch (err) {
+        console.error('[sendMessage] Error in agent loop:', err);
         setError(err as Error);
       } finally {
         setIsLoading(false);

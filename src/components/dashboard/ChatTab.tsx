@@ -16,8 +16,11 @@ export function ChatTab() {
   const provider = activeProvider ? {
     baseURL: activeProvider.baseURL,
     apiKey: activeProvider.apiKey,
-    model: activeProvider.model,
+    model: activeProvider.defaultModel,
   } : null;
+
+  console.log('[ChatTab] activeProvider:', activeProvider ? { ...activeProvider, apiKey: activeProvider.apiKey ? '***' : 'EMPTY' } : null);
+  console.log('[ChatTab] provider:', provider ? { ...provider, apiKey: provider.apiKey ? '***' : 'EMPTY' } : null);
 
   const {
     messages,
@@ -38,16 +41,17 @@ export function ChatTab() {
     if (!input.trim() || !provider || isLoading) return;
 
     // Create new thread if none selected
-    if (!currentThreadId) {
-      const newThreadId = await createNewThread();
-      setCurrentThreadId(newThreadId);
+    let targetThreadId = currentThreadId;
+    if (!targetThreadId) {
+      targetThreadId = await createNewThread();
+      setCurrentThreadId(targetThreadId);
       // Wait for thread to be ready
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     const content = input.trim();
     setInput("");
-    await sendMessage(content);
+    await sendMessage(content, targetThreadId);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
