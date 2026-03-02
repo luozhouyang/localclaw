@@ -2,12 +2,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bot, Send, User, Loader2, Wrench, CheckCircle, XCircle } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLLMSettings } from "@/hooks/use-llm-settings";
 import { usePersistentAgent } from "@/hooks/use-persistent-agent";
 import { ThreadSidebar } from "@/components/chat/ThreadSidebar";
 import type { UIMessage, DynamicToolUIPart } from "ai";
 
+/**
+ * ChatTab component
+ * Main chat interface for interacting with the AI agent
+ */
 export function ChatTab() {
+  const { t } = useTranslation();
   const { provider: activeProvider, isLoading: isProviderLoading } = useLLMSettings();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,12 +80,12 @@ export function ChatTab() {
   // Header status text
   const getHeaderStatus = () => {
     if (isProviderLoading) {
-      return { text: 'Loading...', color: 'text-stone-500' };
+      return { text: t('chat.loading'), color: 'text-stone-500' };
     }
     if (activeProvider) {
       return { text: `${activeProvider.name} • ${activeProvider.defaultModel}`, color: 'text-orange-400/70' };
     }
-    return { text: 'Configuring...', color: 'text-stone-500' };
+    return { text: t('chat.configuring'), color: 'text-stone-500' };
   };
 
   const headerStatus = getHeaderStatus();
@@ -150,7 +156,7 @@ export function ChatTab() {
             </div>
             <div>
               <h2 className="font-display text-lg font-bold text-white">
-                {currentThread?.title || 'AGENT CHAT'}
+                {currentThread?.title || t('chat.title')}
               </h2>
               <p className={`text-xs font-code ${headerStatus.color}`}>
                 {headerStatus.text}
@@ -163,13 +169,13 @@ export function ChatTab() {
                 onClick={clear}
                 className="text-xs text-stone-400 hover:text-orange-400 transition-colors"
               >
-                Clear
+                {t('chat.clear')}
               </button>
             )}
             {isReady && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-xs text-amber-400 font-code">READY</span>
+                <span className="text-xs text-amber-400 font-code">{t('chat.ready')}</span>
               </div>
             )}
           </div>
@@ -184,11 +190,11 @@ export function ChatTab() {
                 <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p className="font-code text-sm">
                   {currentThreadId
-                    ? 'Start a conversation with the agent'
-                    : 'Select or create a chat to start'}
+                    ? t('chat.emptyState.startConversation')
+                    : t('chat.emptyState.selectOrCreate')}
                 </p>
                 {currentThreadId && (
-                  <p className="text-xs mt-2">Try: "List files in /" or "Create a file"</p>
+                  <p className="text-xs mt-2">{t('chat.emptyState.tryCommands')}</p>
                 )}
               </div>
             </div>
@@ -204,7 +210,7 @@ export function ChatTab() {
               <div className="bg-stone-800/50 border border-orange-500/20 rounded-lg px-4 py-3 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
                 <span className="text-sm text-stone-400 font-code">
-                  Thinking...
+                  {t('chat.thinking')}
                 </span>
               </div>
             </div>
@@ -219,12 +225,12 @@ export function ChatTab() {
             <Input
               placeholder={
                 isProviderLoading
-                  ? "Loading provider..."
+                  ? t('chat.placeholder.loadingProvider')
                   : !activeProvider
-                    ? "Configuring provider..."
+                    ? t('chat.placeholder.configuringProvider')
                     : currentThreadId
-                      ? "Type your message..."
-                      : "Create a new chat to start..."
+                      ? t('chat.placeholder.typeMessage')
+                      : t('chat.placeholder.createNewChat')
               }
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -250,15 +256,19 @@ export function ChatTab() {
   );
 }
 
-// Dynamic tool component
+/**
+ * DynamicTool component
+ * Renders tool execution status in chat
+ */
 function DynamicTool({ tool }: { tool: DynamicToolUIPart }) {
+  const { t } = useTranslation();
   const { state, toolName, output } = tool;
 
   if (state === 'input-available' || state === 'input-streaming') {
     return (
       <div className="flex items-center gap-2 text-xs text-amber-400/70 font-code bg-stone-800/30 rounded px-3 py-2">
         <Wrench className="w-3 h-3" />
-        <span>Using tool: {toolName}</span>
+        <span>{t('chat.tool.using', { toolName })}</span>
       </div>
     );
   }
@@ -274,7 +284,7 @@ function DynamicTool({ tool }: { tool: DynamicToolUIPart }) {
         ) : (
           <CheckCircle className="w-3 h-3" />
         )}
-        <span>{toolName} completed</span>
+        <span>{t('chat.tool.completed', { toolName })}</span>
       </div>
     );
   }

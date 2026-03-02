@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 interface StoredProvider {
   id: ProviderType;
@@ -36,7 +37,12 @@ interface StoredProvider {
   isActive: boolean;
 }
 
-export function LLMProviderSettings() {
+/**
+ * ProviderSettings component
+ * LLM provider configuration interface with encryption support
+ */
+export function ProviderSettings() {
+  const { t } = useTranslation();
   const { status: mpStatus, currentPassword } = useMasterPasswordContext();
 
   // Provider state
@@ -111,23 +117,23 @@ export function LLMProviderSettings() {
 
     // Validation
     if (providerType === 'custom' && !baseURL.trim()) {
-      setValidationError('Base URL is required for custom provider');
+      setValidationError(t('settings.validations.baseUrlRequired'));
       return;
     }
 
     if (models.length === 0) {
-      setValidationError('Please add at least one model');
+      setValidationError(t('settings.validations.addModel'));
       return;
     }
 
     if (!model) {
-      setValidationError('Please select a default model');
+      setValidationError(t('settings.validations.selectModel'));
       return;
     }
 
     const invalidModels = models.filter(m => !m.id || m.id.trim() === '');
     if (invalidModels.length > 0) {
-      setValidationError('Invalid model detected. Please remove empty models and try again.');
+      setValidationError(t('settings.validations.invalidModel'));
       return;
     }
 
@@ -135,13 +141,13 @@ export function LLMProviderSettings() {
     const isApiKeyEmpty = apiKeyInput === '' || apiKeyInput === '********************';
 
     if (!hasExistingKey && isApiKeyEmpty) {
-      setValidationError('API Key is required');
+      setValidationError(t('settings.validations.apiKeyRequired'));
       return;
     }
 
     // Check if we have master key
     if (mpStatus.state !== 'unlocked' || !currentPassword) {
-      setValidationError('Please unlock with master password first');
+      setValidationError(t('settings.validations.unlockRequired'));
       return;
     }
 
@@ -291,7 +297,7 @@ export function LLMProviderSettings() {
     return (
       <div className="glass rounded-xl p-8 text-center">
         <Loader2 className="w-8 h-8 text-orange-400 animate-spin mx-auto mb-4" />
-        <p className="text-stone-400 font-code">INITIALIZING...</p>
+        <p className="text-stone-400 font-code">{t('common.initializing')}</p>
       </div>
     );
   }
@@ -306,11 +312,11 @@ export function LLMProviderSettings() {
             <div className="absolute inset-0 blur-lg bg-orange-400/50 -z-10" />
           </div>
           <h2 className="font-display text-xl font-bold text-white">
-            LLM PROVIDER
+            {t('settings.title')}
           </h2>
         </div>
         <p className="text-stone-400 text-sm font-code">
-          Configure OpenRouter or a custom OpenAI-compatible provider
+          {t('settings.description')}
         </p>
       </div>
 
@@ -333,7 +339,7 @@ export function LLMProviderSettings() {
           </div>
           <div className="flex-1">
             <span className="text-xs text-amber-400 font-code tracking-wider">
-              ACTIVE PROVIDER
+              {t('settings.activeProvider')}
             </span>
             <div className="flex items-center gap-2">
               <span className="text-white font-medium">{provider.name}</span>
@@ -350,7 +356,7 @@ export function LLMProviderSettings() {
           <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-amber-400 text-sm font-code">
-              Provider is locked. Please unlock from the main dashboard.
+              {t('settings.locked')}
             </p>
           </div>
         </div>
@@ -361,7 +367,7 @@ export function LLMProviderSettings() {
         {/* Provider Type */}
         <div className="space-y-2">
           <Label className="text-orange-400 font-code text-xs tracking-wider">
-            PROVIDER TYPE
+            {t('settings.providerType.label')}
           </Label>
           <Select
             value={providerType}
@@ -375,13 +381,13 @@ export function LLMProviderSettings() {
                 value="openrouter"
                 className="font-code text-stone-300 focus:bg-orange-500/20 focus:text-orange-400"
               >
-                OpenRouter
+                {t('settings.providerType.openrouter')}
               </SelectItem>
               <SelectItem
                 value="custom"
                 className="font-code text-stone-300 focus:bg-orange-500/20 focus:text-orange-400"
               >
-                Custom (OpenAI-compatible)
+                {t('settings.providerType.custom')}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -390,17 +396,17 @@ export function LLMProviderSettings() {
         {/* API Key */}
         <div className="space-y-2">
           <Label className="text-orange-400 font-code text-xs tracking-wider">
-            API KEY
+            {t('settings.apiKey.label')}
           </Label>
           <Input
             type="password"
             value={apiKeyInput}
             onChange={(e) => setApiKeyInput(e.target.value)}
-            placeholder={provider?.apiKey ? '********************' : (providerType === 'openrouter' ? 'sk-or-v1-...' : 'sk-...')}
+            placeholder={provider?.apiKey ? '********************' : (providerType === 'openrouter' ? t('settings.apiKey.placeholder.openrouter') : t('settings.apiKey.placeholder.custom'))}
             className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code text-white placeholder:text-stone-600"
           />
           {provider?.apiKey && !apiKeyInput && (
-            <p className="text-xs text-stone-500 font-code">API key is saved (hidden for security)</p>
+            <p className="text-xs text-stone-500 font-code">{t('settings.apiKey.saved')}</p>
           )}
         </div>
 
@@ -409,16 +415,16 @@ export function LLMProviderSettings() {
           <div className="space-y-2">
             <Label className="text-orange-400 font-code text-xs tracking-wider flex items-center gap-2">
               <Globe className="w-3 h-3" />
-              BASE URL
+              {t('settings.baseUrl.label')}
             </Label>
             <Input
               value={baseURL}
               onChange={(e) => setBaseURL(e.target.value)}
-              placeholder="https://api.example.com/v1"
+              placeholder={t('settings.baseUrl.placeholder')}
               className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code text-white placeholder:text-stone-600"
             />
             <p className="text-xs text-stone-500 font-code">
-              The base URL for your OpenAI-compatible API endpoint
+              {t('settings.baseUrl.description')}
             </p>
           </div>
         )}
@@ -426,12 +432,12 @@ export function LLMProviderSettings() {
         {/* Models */}
         <div className="space-y-4">
           <Label className="text-orange-400 font-code text-xs tracking-wider">
-            MODELS
+            {t('settings.models.label')}
           </Label>
 
           <Select value={model || undefined} onValueChange={setModel}>
             <SelectTrigger className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code">
-              <SelectValue placeholder="Select or add a model" />
+              <SelectValue placeholder={t('settings.models.placeholder')} />
             </SelectTrigger>
             <SelectContent className="glass-strong border-orange-500/30 max-h-64">
               {models.filter(m => m.id && m.id.trim() !== '').map((m) => (
@@ -450,7 +456,7 @@ export function LLMProviderSettings() {
             <Input
               value={newModelInput}
               onChange={(e) => setNewModelInput(e.target.value)}
-              placeholder={providerType === 'openrouter' ? 'anthropic/claude-3.5-sonnet' : 'gpt-4o'}
+              placeholder={providerType === 'openrouter' ? t('settings.models.addPlaceholder.openrouter') : t('settings.models.addPlaceholder.custom')}
               className="bg-stone-900/50 border-orange-500/30 focus:border-orange-400 font-code text-white placeholder:text-stone-600 text-sm"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -505,7 +511,7 @@ export function LLMProviderSettings() {
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            {isSaving ? 'SAVING...' : 'SAVE'}
+            {isSaving ? t('settings.actions.saving') : t('settings.actions.save')}
           </Button>
 
           <Button
@@ -525,7 +531,7 @@ export function LLMProviderSettings() {
             ) : testResult === 'success' ? (
               <CheckCircle2 className="w-4 h-4 mr-2" />
             ) : (
-              'TEST'
+              t('settings.actions.test')
             )}
           </Button>
 
@@ -536,7 +542,7 @@ export function LLMProviderSettings() {
               className="border-red-500/30 text-red-400 hover:bg-red-500/10 font-code ml-auto"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              DELETE
+              {t('settings.actions.delete')}
             </Button>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Terminal,
   Send,
@@ -18,7 +19,12 @@ interface TerminalLine {
   timestamp: number;
 }
 
+/**
+ * TerminalTab component
+ * Interactive terminal interface for executing bash commands
+ */
 export function TerminalTab() {
+  const { t } = useTranslation();
   const [lines, setLines] = useState<TerminalLine[]>([]);
   const [input, setInput] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
@@ -81,7 +87,7 @@ export function TerminalTab() {
 
       // Add exit code info if non-zero
       if (result.exitCode !== 0) {
-        addLine('info', `[Exit code: ${result.exitCode}]`);
+        addLine('info', t('terminal.exitCode', { code: result.exitCode }));
       }
     } catch (err) {
       addLine('error', err instanceof Error ? err.message : 'Command failed');
@@ -135,7 +141,7 @@ export function TerminalTab() {
             <div className="absolute inset-0 blur-lg bg-orange-400/50 -z-10" />
           </div>
           <div>
-            <h2 className="font-display text-lg font-bold text-white">TERMINAL</h2>
+            <h2 className="font-display text-lg font-bold text-white">{t('terminal.title')}</h2>
             <p className="text-xs text-orange-400/70 font-code">{cwd}</p>
           </div>
         </div>
@@ -148,7 +154,7 @@ export function TerminalTab() {
             className="border-orange-500/30 hover:bg-orange-500/10"
           >
             <Trash2 className="w-4 h-4 mr-2" />
-            Clear
+            {t('terminal.clear')}
           </Button>
         </div>
       </div>
@@ -162,8 +168,8 @@ export function TerminalTab() {
         {lines.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-stone-600">
             <Terminal className="w-16 h-16 mb-4 opacity-20" />
-            <p className="text-xs">Terminal ready. Type a command to start.</p>
-            <p className="text-xs mt-1 opacity-50">Try: ls, pwd, echo hello, cat file.txt</p>
+            <p className="text-xs">{t('terminal.emptyState.ready')}</p>
+            <p className="text-xs mt-1 opacity-50">{t('terminal.emptyState.tryCommands')}</p>
           </div>
         ) : (
           <div className="space-y-1">
@@ -182,7 +188,7 @@ export function TerminalTab() {
                 <button
                   onClick={() => copyToClipboard(line.content, line.id)}
                   className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-stone-800 rounded"
-                  title="Copy"
+                  title={t('terminal.copy')}
                 >
                   {copiedLine === line.id ? (
                     <Check className="w-3 h-3 text-green-400" />
@@ -195,7 +201,7 @@ export function TerminalTab() {
             {isExecuting && (
               <div className="flex items-center gap-2 text-stone-500">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Executing...</span>
+                <span>{t('terminal.executing')}</span>
               </div>
             )}
           </div>
@@ -211,7 +217,7 @@ export function TerminalTab() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type command..."
+            placeholder={t('terminal.placeholder')}
             disabled={isExecuting}
             className="flex-1 bg-stone-800/50 border-orange-500/30 text-white font-mono text-sm focus:border-orange-400 placeholder:text-stone-600"
             spellCheck={false}

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import {
   Zap,
   Shield,
@@ -12,43 +13,43 @@ import {
 
 export const Route = createFileRoute('/')({ component: LandingPage })
 
+/**
+ * LandingPage component
+ * Main landing page for LocalClaw with feature highlights
+ */
 function LandingPage() {
+  const { t } = useTranslation()
+
   const features = [
     {
       icon: <Bot className="w-10 h-10 text-orange-500" />,
-      title: 'AI-Powered Agent',
-      description:
-        'Built on Vercel AI SDK with advanced language model capabilities. Experience natural, context-aware conversations.',
+      title: t('landing.features.aiAgent.title'),
+      description: t('landing.features.aiAgent.description'),
     },
     {
       icon: <Terminal className="w-10 h-10 text-amber-400" />,
-      title: 'Browser-Based Terminal',
-      description:
-        'Full terminal emulation in the browser via OPFS and bash-tool integration. Execute commands seamlessly.',
+      title: t('landing.features.terminal.title'),
+      description: t('landing.features.terminal.description'),
     },
     {
       icon: <Cpu className="w-10 h-10 text-coral" />,
-      title: 'Local File System',
-      description:
-        'Direct access to your local files through AgentFS and OPFS. Read, write, and manage files with AI assistance.',
+      title: t('landing.features.filesystem.title'),
+      description: t('landing.features.filesystem.description'),
     },
     {
       icon: <Code2 className="w-10 h-10 text-orange-500" />,
-      title: 'Developer First',
-      description:
-        'Built for developers by developers. Type-safe, extensible, and open source. Integrate with your workflow.',
+      title: t('landing.features.developer.title'),
+      description: t('landing.features.developer.description'),
     },
     {
       icon: <Zap className="w-10 h-10 text-amber-400" />,
-      title: 'Lightning Fast',
-      description:
-        'Powered by Cloudflare Workers edge computing. Low latency responses from anywhere in the world.',
+      title: t('landing.features.fast.title'),
+      description: t('landing.features.fast.description'),
     },
     {
       icon: <Shield className="w-10 h-10 text-orange-500" />,
-      title: 'Privacy Focused',
-      description:
-        'Your data stays local. Files are processed in-browser, and API keys are stored securely in your environment.',
+      title: t('landing.features.privacy.title'),
+      description: t('landing.features.privacy.description'),
     },
   ]
 
@@ -71,14 +72,14 @@ function LandingPage() {
                 <div className="absolute inset-0 blur-lg bg-orange-500/50 -z-10" />
               </div>
               <span className="font-display text-xl font-bold text-white glow-orange-text">
-                LOCALCLAW
+                {t('app.name')}
               </span>
             </div>
             <Link
               to="/dashboard"
               className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 rounded-lg transition-all duration-300 hover:glow-orange font-code text-sm group"
             >
-              <span>LAUNCH</span>
+              <span>{t('landing.launch')}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
@@ -91,26 +92,25 @@ function LandingPage() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full glass border-glow">
             <Sparkles className="w-4 h-4 text-orange-400" />
-            <span className="text-sm text-orange-400 font-code">AI AGENT FRAMEWORK</span>
+            <span className="text-sm text-orange-400 font-code">{t('landing.badge')}</span>
           </div>
 
           {/* Main heading */}
           <h1 className="font-display text-5xl md:text-7xl font-black mb-6">
-            <span className="text-white">YOUR LOCAL</span>
+            <span className="text-white">{t('landing.title.line1')}</span>
             <br />
             <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent glow-orange-text">
-              AI AGENT
+              {t('landing.title.line2')}
             </span>
           </h1>
 
           <p className="text-xl md:text-2xl text-stone-300 mb-4 font-light max-w-3xl mx-auto">
-            A fully browser-based AI agent powered by
+            {t('landing.subtitle')}
             <span className="text-orange-400"> Vercel AI SDK</span>
           </p>
 
           <p className="text-base text-stone-400 max-w-2xl mx-auto mb-10 font-code">
-            LocalClaw combines OPFS, AgentFS, and bash-tool to create a powerful
-            AI assistant that runs entirely in your browser. No installation required.
+            {t('landing.description')}
           </p>
 
           {/* CTA Buttons */}
@@ -120,7 +120,7 @@ function LandingPage() {
               className="flex items-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-400 text-white font-bold rounded-lg transition-all duration-300 hover:glow-orange text-lg group"
             >
               <Terminal className="w-5 h-5" />
-              <span>START AGENT</span>
+              <span>{t('landing.startAgent')}</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <a
@@ -130,7 +130,7 @@ function LandingPage() {
               className="flex items-center gap-2 px-8 py-4 glass hover:glass-strong text-orange-400 border border-orange-500/30 rounded-lg transition-all duration-300 text-lg"
             >
               <Code2 className="w-5 h-5" />
-              <span>VIEW SOURCE</span>
+              <span>{t('landing.viewSource')}</span>
             </a>
           </div>
 
@@ -138,19 +138,19 @@ function LandingPage() {
           <div className="mt-16 flex flex-wrap items-center justify-center gap-6 text-stone-500 font-code text-sm">
             <span className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-              TanStack Start
+              {t('landing.techStack.tanstack')}
             </span>
             <span className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
-              Cloudflare Workers
+              {t('landing.techStack.cloudflare')}
             </span>
             <span className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-coral animate-pulse" style={{ animationDelay: '0.4s' }} />
-              Vercel AI SDK
+              {t('landing.techStack.vercel')}
             </span>
             <span className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" style={{ animationDelay: '0.6s' }} />
-              OPFS / AgentFS
+              {t('landing.techStack.filesystem')}
             </span>
           </div>
         </div>
@@ -161,10 +161,10 @@ function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">
-              POWERFUL CAPABILITIES
+              {t('landing.features.title')}
             </h2>
             <p className="text-stone-400 font-code">
-              Everything you need for AI-powered development
+              {t('landing.features.subtitle')}
             </p>
           </div>
 
@@ -199,7 +199,7 @@ function LandingPage() {
               <div className="w-3 h-3 rounded-full bg-red-500" />
               <div className="w-3 h-3 rounded-full bg-yellow-500" />
               <div className="w-3 h-3 rounded-full bg-amber-400" />
-              <span className="ml-4 text-xs text-stone-500 font-code">localclaw-agent</span>
+              <span className="ml-4 text-xs text-stone-500 font-code">{t('landing.terminalPreview.title')}</span>
             </div>
             {/* Terminal content */}
             <div className="p-6 font-code text-sm space-y-2 bg-stone-950/50">
@@ -209,13 +209,13 @@ function LandingPage() {
                 <span className="text-stone-500">localclaw init</span>
               </div>
               <div className="text-amber-400">
-                ✓ Agent initialized successfully
+                ✓ {t('landing.terminalPreview.initialized')}
               </div>
               <div className="text-stone-400">
-                ✓ Connected to OpenAI GPT-4o
+                ✓ {t('landing.terminalPreview.connected')}
               </div>
               <div className="text-stone-400">
-                ✓ OPFS filesystem mounted
+                ✓ {t('landing.terminalPreview.mounted')}
               </div>
               <div className="flex items-center gap-2 mt-4">
                 <span className="text-orange-400">➜</span>
@@ -232,9 +232,10 @@ function LandingPage() {
       <footer className="relative z-10 py-8 px-6 border-t border-orange-500/10">
         <div className="max-w-7xl mx-auto text-center">
           <p className="text-stone-500 text-sm font-code">
-            Built with <span className="text-orange-400">TanStack Start</span> +{' '}
-            <span className="text-amber-400">Cloudflare Workers</span> +{' '}
-            <span className="text-coral">Vercel AI SDK</span>
+            {t('landing.footer')}{' '}
+            <span className="text-orange-400">{t('landing.techStack.tanstack')}</span> +{' '}
+            <span className="text-amber-400">{t('landing.techStack.cloudflare')}</span> +{' '}
+            <span className="text-coral">{t('landing.techStack.vercel')}</span>
           </p>
         </div>
       </footer>

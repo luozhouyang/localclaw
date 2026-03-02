@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FileText,
   Folder,
@@ -33,6 +34,9 @@ import {
 } from '@/components/ui/dialog';
 import { useFiles } from '@/hooks/use-files';
 
+/**
+ * Format file size in human-readable format
+ */
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -41,6 +45,9 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+/**
+ * Format date in localized format
+ */
 function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleString('en-US', {
     month: 'short',
@@ -50,7 +57,12 @@ function formatDate(timestamp: number): string {
   });
 }
 
+/**
+ * FilesTab component
+ * File manager interface for browsing and managing files
+ */
 export function FilesTab() {
+  const { t } = useTranslation();
   const {
     files,
     currentPath,
@@ -145,9 +157,9 @@ export function FilesTab() {
         <div className="flex items-center gap-3">
           <FolderOpen className="w-6 h-6 text-orange-400" />
           <div>
-            <h2 className="font-display text-lg font-bold text-white">FILE MANAGER</h2>
+            <h2 className="font-display text-lg font-bold text-white">{t('files.title')}</h2>
             <p className="text-xs text-orange-400/70 font-code">
-              {files.length} items in {currentPath}
+              {t('files.itemsInPath', { count: files.length, path: currentPath })}
             </p>
           </div>
         </div>
@@ -160,7 +172,7 @@ export function FilesTab() {
             className="border-orange-500/30 hover:bg-orange-500/10"
           >
             <Plus className="w-4 h-4 mr-2" />
-            New Folder
+            {t('files.newFolder')}
           </Button>
           <Button
             variant="outline"
@@ -169,7 +181,7 @@ export function FilesTab() {
             className="border-orange-500/30 hover:bg-orange-500/10"
           >
             <Upload className="w-4 h-4 mr-2" />
-            Upload
+            {t('files.upload')}
           </Button>
           <Button
             variant="outline"
@@ -240,7 +252,7 @@ export function FilesTab() {
           <AlertCircle className="w-4 h-4 text-red-400" />
           <p className="text-sm text-red-400">{error}</p>
           <Button variant="ghost" size="sm" onClick={refresh} className="ml-auto text-red-400">
-            Retry
+            {t('files.retry')}
           </Button>
         </div>
       )}
@@ -254,8 +266,8 @@ export function FilesTab() {
         ) : files.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-stone-500">
             <FolderOpen className="w-16 h-16 mb-4 opacity-30" />
-            <p className="font-code text-sm">Empty directory</p>
-            <p className="text-xs mt-2">Upload files or create a folder</p>
+            <p className="font-code text-sm">{t('files.emptyDirectory')}</p>
+            <p className="text-xs mt-2">{t('files.uploadOrCreate')}</p>
           </div>
         ) : (
           <div className="space-y-1">
@@ -277,7 +289,7 @@ export function FilesTab() {
                     <p className="font-medium text-sm text-white truncate">{file.name}</p>
                     <p className="text-xs text-stone-500 font-code">
                       {file.type === 'directory'
-                        ? 'Folder'
+                        ? t('files.folder')
                         : `${formatFileSize(file.size)} • ${formatDate(file.mtime)}`}
                     </p>
                   </div>
@@ -297,7 +309,7 @@ export function FilesTab() {
                     {file.type === 'file' && (
                       <DropdownMenuItem onClick={() => handleDownload(file.name)}>
                         <Download className="w-4 h-4 mr-2" />
-                        Download
+                        {t('files.actions.download')}
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
@@ -307,14 +319,14 @@ export function FilesTab() {
                       }}
                     >
                       <Edit2 className="w-4 h-4 mr-2" />
-                      Rename
+                      {t('files.actions.rename')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => setDeleteTarget(file.name)}
                       className="text-red-400 focus:text-red-400"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
+                      {t('files.actions.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -328,28 +340,28 @@ export function FilesTab() {
       <Dialog open={showNewFolderDialog} onOpenChange={setShowNewFolderDialog}>
         <DialogContent className="bg-stone-900 border-orange-500/20">
           <DialogHeader>
-            <DialogTitle className="text-white">Create New Folder</DialogTitle>
+            <DialogTitle className="text-white">{t('files.dialogs.newFolder.title')}</DialogTitle>
             <DialogDescription className="text-stone-400">
-              Enter a name for the new folder in {currentPath}
+              {t('files.dialogs.newFolder.description', { path: currentPath })}
             </DialogDescription>
           </DialogHeader>
           <Input
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
-            placeholder="Folder name"
+            placeholder={t('files.dialogs.newFolder.placeholder')}
             className="bg-stone-800 border-orange-500/30 text-white"
             onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewFolderDialog(false)}>
-              Cancel
+              {t('files.dialogs.newFolder.cancel')}
             </Button>
             <Button
               onClick={handleCreateFolder}
               disabled={!newFolderName.trim()}
               className="bg-orange-500 hover:bg-orange-400"
             >
-              Create
+              {t('files.dialogs.newFolder.create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -359,28 +371,28 @@ export function FilesTab() {
       <Dialog open={!!renameTarget} onOpenChange={() => setRenameTarget(null)}>
         <DialogContent className="bg-stone-900 border-orange-500/20">
           <DialogHeader>
-            <DialogTitle className="text-white">Rename</DialogTitle>
+            <DialogTitle className="text-white">{t('files.dialogs.rename.title')}</DialogTitle>
             <DialogDescription className="text-stone-400">
-              Enter a new name for &quot;{renameTarget}&quot;
+              {t('files.dialogs.rename.description', { name: renameTarget })}
             </DialogDescription>
           </DialogHeader>
           <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="New name"
+            placeholder={t('files.dialogs.rename.placeholder')}
             className="bg-stone-800 border-orange-500/30 text-white"
             onKeyDown={(e) => e.key === 'Enter' && handleRename()}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameTarget(null)}>
-              Cancel
+              {t('files.dialogs.rename.cancel')}
             </Button>
             <Button
               onClick={handleRename}
               disabled={!newName.trim() || newName === renameTarget}
               className="bg-orange-500 hover:bg-orange-400"
             >
-              Rename
+              {t('files.dialogs.rename.rename')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -390,17 +402,17 @@ export function FilesTab() {
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <DialogContent className="bg-stone-900 border-red-500/20">
           <DialogHeader>
-            <DialogTitle className="text-white">Confirm Delete</DialogTitle>
+            <DialogTitle className="text-white">{t('files.dialogs.delete.title')}</DialogTitle>
             <DialogDescription className="text-stone-400">
-              Are you sure you want to delete &quot;{deleteTarget}&quot;? This action cannot be undone.
+              {t('files.dialogs.delete.description', { name: deleteTarget })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t('files.dialogs.delete.cancel')}
             </Button>
             <Button onClick={handleDelete} variant="destructive">
-              Delete
+              {t('files.dialogs.delete.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Trash2, MessageSquare, Edit2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { threadManager } from '@/chat/thread-manager';
@@ -11,12 +12,17 @@ interface ThreadSidebarProps {
   channel?: Channel;
 }
 
+/**
+ * ThreadSidebar component
+ * Displays list of chat threads and allows thread management
+ */
 export function ThreadSidebar({
   currentThreadId,
   onSelectThread,
   onCreateThread,
   channel = 'local',
 }: ThreadSidebarProps) {
+  const { t } = useTranslation();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -35,7 +41,7 @@ export function ThreadSidebar({
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (confirm('Delete this conversation?')) {
+    if (confirm(t('common.confirm'))) {
       await threadManager.deleteThread(id);
       loadThreads();
     }
@@ -80,7 +86,7 @@ export function ThreadSidebar({
           className="w-full bg-orange-500 hover:bg-orange-400 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
-          New Chat
+          {t('chat.newChat')}
         </Button>
       </div>
 
@@ -163,7 +169,7 @@ export function ThreadSidebar({
         {threads.length === 0 && (
           <div className="text-center py-8 text-stone-500">
             <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No conversations yet</p>
+            <p className="text-sm">{t('chat.emptyState.selectOrCreate')}</p>
           </div>
         )}
       </div>

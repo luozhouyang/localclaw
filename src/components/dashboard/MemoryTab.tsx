@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Brain,
   FileText,
@@ -58,7 +59,12 @@ interface ThreadMemoryData {
   facts: ThreadFacts | null;
 }
 
+/**
+ * MemoryTab component
+ * Memory management interface for threads, user profile, and projects
+ */
 export function MemoryTab() {
+  const { t } = useTranslation();
   const [activeView, setActiveView] = useState<MemoryView>('thread');
   const [selectedThreadId, setSelectedThreadId] = useState<string>('');
   const [projectPath, setProjectPath] = useState<string>('');
@@ -80,8 +86,8 @@ export function MemoryTab() {
         <div className="flex items-center gap-3">
           <Brain className="w-6 h-6 text-orange-400" />
           <div>
-            <h2 className="font-display text-lg font-bold text-white">MEMORY SYSTEM</h2>
-            <p className="text-xs text-orange-400/70 font-code">V2 - Thread / User / Project</p>
+            <h2 className="font-display text-lg font-bold text-white">{t('memory.title')}</h2>
+            <p className="text-xs text-orange-400/70 font-code">{t('memory.subtitle')}</p>
           </div>
         </div>
 
@@ -91,19 +97,19 @@ export function MemoryTab() {
             active={activeView === 'thread'}
             onClick={() => setActiveView('thread')}
             icon={MessageSquare}
-            label="Thread"
+            label={t('memory.views.thread')}
           />
           <ViewButton
             active={activeView === 'user'}
             onClick={() => setActiveView('user')}
             icon={User}
-            label="User"
+            label={t('memory.views.user')}
           />
           <ViewButton
             active={activeView === 'project'}
             onClick={() => setActiveView('project')}
             icon={FolderGit2}
-            label="Project"
+            label={t('memory.views.project')}
           />
         </div>
       </div>
@@ -149,6 +155,7 @@ function ViewButton({
 // ==================== Thread Memory View ====================
 
 function ThreadMemoryView({ threadId }: { threadId: string }) {
+  const { t } = useTranslation();
   const [data, setData] = useState<ThreadMemoryData>({ summary: null, facts: null });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -204,8 +211,8 @@ function ThreadMemoryView({ threadId }: { threadId: string }) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-stone-500">
         <MessageSquare className="w-16 h-16 mb-4 opacity-30" />
-        <p className="font-code text-sm">No active thread</p>
-        <p className="text-xs mt-2">Select a chat thread to view its memory</p>
+        <p className="font-code text-sm">{t('memory.thread.noActiveThread')}</p>
+        <p className="text-xs mt-2">{t('memory.thread.selectThread')}</p>
       </div>
     );
   }
@@ -225,30 +232,35 @@ function ThreadMemoryView({ threadId }: { threadId: string }) {
         <section>
           <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
             <FileText className="w-4 h-4 text-orange-400" />
-            Conversation Summary
+            {t('memory.thread.summary.title')}
           </h3>
           {data.summary ? (
             <div className="p-4 rounded-lg border border-orange-500/20 bg-stone-800/30">
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-400">
-                  Messages {data.summary.messageRange.start}-{data.summary.messageRange.end}
+                  {t('memory.thread.summary.messages', {
+                    start: data.summary.messageRange.start,
+                    end: data.summary.messageRange.end,
+                  })}
                 </Badge>
                 <span className="text-xs text-stone-500">
-                  Generated {new Date(data.summary.generatedAt).toLocaleString()}
+                  {t('memory.thread.summary.generatedAt', {
+                    date: new Date(data.summary.generatedAt).toLocaleString(),
+                  })}
                 </span>
               </div>
               <p className="text-sm text-stone-300 whitespace-pre-wrap">
                 {data.summary.content}
               </p>
               <div className="mt-2 text-xs text-stone-500">
-                ~{data.summary.tokenCount} tokens
+                {t('memory.thread.summary.tokens', { count: data.summary.tokenCount })}
               </div>
             </div>
           ) : (
             <div className="p-4 rounded-lg border border-dashed border-orange-500/20 text-center">
-              <p className="text-sm text-stone-500">No summary available yet</p>
+              <p className="text-sm text-stone-500">{t('memory.thread.summary.noSummary')}</p>
               <p className="text-xs text-stone-600 mt-1">
-                Summaries are generated automatically every 20 messages
+                {t('memory.thread.summary.autoGenerated')}
               </p>
             </div>
           )}
@@ -258,7 +270,7 @@ function ThreadMemoryView({ threadId }: { threadId: string }) {
         <section>
           <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-orange-400" />
-            Extracted Facts ({data.facts?.facts.length || 0})
+            {t('memory.thread.facts.title', { count: data.facts?.facts.length || 0 })}
           </h3>
           {data.facts && data.facts.facts.length > 0 ? (
             <div className="space-y-2">
@@ -273,9 +285,9 @@ function ThreadMemoryView({ threadId }: { threadId: string }) {
             </div>
           ) : (
             <div className="p-4 rounded-lg border border-dashed border-orange-500/20 text-center">
-              <p className="text-sm text-stone-500">No facts extracted yet</p>
+              <p className="text-sm text-stone-500">{t('memory.thread.facts.noFacts')}</p>
               <p className="text-xs text-stone-600 mt-1">
-                Facts are automatically extracted from assistant messages
+                {t('memory.thread.facts.autoExtracted')}
               </p>
             </div>
           )}
@@ -288,6 +300,7 @@ function ThreadMemoryView({ threadId }: { threadId: string }) {
 // ==================== User Memory View ====================
 
 function UserMemoryView() {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -342,7 +355,7 @@ function UserMemoryView() {
             </div>
             <div>
               <h3 className="text-lg font-medium text-white">
-                {profile?.displayName || 'Default User'}
+                {profile?.displayName || t('memory.user.defaultUser')}
               </h3>
               <p className="text-xs text-stone-500">ID: {profile?.userId}</p>
             </div>
@@ -356,12 +369,12 @@ function UserMemoryView() {
             {isEditing ? (
               <>
                 <Save className="w-4 h-4 mr-2" />
-                Save
+                {t('memory.user.actions.save')}
               </>
             ) : (
               <>
                 <Edit2 className="w-4 h-4 mr-2" />
-                Edit
+                {t('memory.user.actions.edit')}
               </>
             )}
           </Button>
@@ -369,11 +382,11 @@ function UserMemoryView() {
 
         {/* Preferences */}
         <section>
-          <h4 className="text-sm font-medium text-white mb-3">Preferences</h4>
+          <h4 className="text-sm font-medium text-white mb-3">{t('memory.user.preferences')}</h4>
           {isEditing ? (
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-stone-400">Coding Style</label>
+                <label className="text-xs text-stone-400">{t('memory.user.codingStyle')}</label>
                 <Input
                   value={editForm.preferences?.codingStyle || ''}
                   onChange={(e) =>
@@ -386,7 +399,7 @@ function UserMemoryView() {
                 />
               </div>
               <div>
-                <label className="text-xs text-stone-400">Communication Style</label>
+                <label className="text-xs text-stone-400">{t('memory.user.communication')}</label>
                 <Select
                   value={editForm.preferences?.communicationStyle || 'detailed'}
                   onValueChange={(v) =>
@@ -400,29 +413,29 @@ function UserMemoryView() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-stone-800 border-stone-700">
-                    <SelectItem value="concise">Concise</SelectItem>
-                    <SelectItem value="detailed">Detailed</SelectItem>
-                    <SelectItem value="tutorial">Tutorial</SelectItem>
+                    <SelectItem value="concise">{t('memory.user.communicationStyles.concise')}</SelectItem>
+                    <SelectItem value="detailed">{t('memory.user.communicationStyles.detailed')}</SelectItem>
+                    <SelectItem value="tutorial">{t('memory.user.communicationStyles.tutorial')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4">
-              <InfoItem label="Coding Style" value={profile?.preferences.codingStyle || 'Not set'} />
+              <InfoItem label={t('memory.user.codingStyle')} value={profile?.preferences.codingStyle || t('memory.user.notSet')} />
               <InfoItem
-                label="Communication"
-                value={profile?.preferences.communicationStyle || 'Detailed'}
+                label={t('memory.user.communication')}
+                value={profile?.preferences.communicationStyle || t('memory.user.communicationStyles.detailed')}
               />
-              <InfoItem label="Timezone" value={profile?.preferences.timezone || 'Not set'} />
-              <InfoItem label="Language" value={profile?.preferences.language || 'Not set'} />
+              <InfoItem label={t('memory.user.timezone')} value={profile?.preferences.timezone || t('memory.user.notSet')} />
+              <InfoItem label={t('memory.user.language')} value={profile?.preferences.language || t('memory.user.notSet')} />
             </div>
           )}
         </section>
 
         {/* Skills */}
         <section>
-          <h4 className="text-sm font-medium text-white mb-3">Skills</h4>
+          <h4 className="text-sm font-medium text-white mb-3">{t('memory.user.skills')}</h4>
           <div className="space-y-2">
             {profile?.skills.length ? (
               profile.skills.map((skill) => (
@@ -433,7 +446,7 @@ function UserMemoryView() {
                   <div>
                     <p className="text-sm text-white">{skill.name}</p>
                     <p className="text-xs text-stone-500">
-                      {skill.evidence.length} interactions
+                      {t('memory.user.interactions', { count: skill.evidence.length })}
                     </p>
                   </div>
                   <Badge
@@ -446,19 +459,19 @@ function UserMemoryView() {
                           : 'bg-stone-500/20 text-stone-400'
                     }`}
                   >
-                    {skill.level}
+                    {t(`memory.skillLevels.${skill.level}`)}
                   </Badge>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-stone-500">No skills recorded yet</p>
+              <p className="text-sm text-stone-500">{t('memory.user.noSkills')}</p>
             )}
           </div>
         </section>
 
         {/* Snippets */}
         <section>
-          <h4 className="text-sm font-medium text-white mb-3">Code Snippets</h4>
+          <h4 className="text-sm font-medium text-white mb-3">{t('memory.user.snippets')}</h4>
           <div className="space-y-2">
             {profile?.snippets.length ? (
               profile.snippets.map((snippet) => (
@@ -469,14 +482,14 @@ function UserMemoryView() {
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-white">{snippet.name}</p>
                     <span className="text-xs text-stone-500">
-                      Used {snippet.usageCount} times
+                      {t('memory.user.usageCount', { count: snippet.usageCount })}
                     </span>
                   </div>
                   <p className="text-xs text-stone-400">{snippet.context}</p>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-stone-500">No snippets saved yet</p>
+              <p className="text-sm text-stone-500">{t('memory.user.noSnippets')}</p>
             )}
           </div>
         </section>
@@ -488,6 +501,7 @@ function UserMemoryView() {
 // ==================== Project Memory View ====================
 
 function ProjectMemoryView({ projectPath }: { projectPath: string }) {
+  const { t } = useTranslation();
   const [project, setProject] = useState<ProjectMemory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newDecision, setNewDecision] = useState({ content: '', rationale: '' });
@@ -534,7 +548,7 @@ function ProjectMemoryView({ projectPath }: { projectPath: string }) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-stone-500">
         <FolderGit2 className="w-16 h-16 mb-4 opacity-30" />
-        <p className="font-code text-sm">No project detected</p>
+        <p className="font-code text-sm">{t('memory.project.noProject')}</p>
       </div>
     );
   }
@@ -557,7 +571,7 @@ function ProjectMemoryView({ projectPath }: { projectPath: string }) {
 
         {/* Tech Stack */}
         <section>
-          <h4 className="text-sm font-medium text-white mb-3">Tech Stack</h4>
+          <h4 className="text-sm font-medium text-white mb-3">{t('memory.project.techStack')}</h4>
           <div className="flex flex-wrap gap-2">
             {project.overview.techStack.languages.map((lang) => (
               <Badge key={lang} variant="outline" className="bg-blue-500/20 text-blue-400">
@@ -577,7 +591,7 @@ function ProjectMemoryView({ projectPath }: { projectPath: string }) {
             {project.overview.techStack.languages.length === 0 &&
               project.overview.techStack.frameworks.length === 0 &&
               project.overview.techStack.tools.length === 0 && (
-                <p className="text-sm text-stone-500">Not detected yet</p>
+                <p className="text-sm text-stone-500">{t('memory.project.notDetected')}</p>
               )}
           </div>
         </section>
@@ -585,7 +599,7 @@ function ProjectMemoryView({ projectPath }: { projectPath: string }) {
         {/* Decisions */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium text-white">Key Decisions</h4>
+            <h4 className="text-sm font-medium text-white">{t('memory.project.decisions.title')}</h4>
             <Button
               variant="ghost"
               size="sm"
@@ -593,20 +607,20 @@ function ProjectMemoryView({ projectPath }: { projectPath: string }) {
               className="text-orange-400 hover:text-orange-300"
             >
               <Plus className="w-4 h-4 mr-1" />
-              Add
+              {t('memory.project.decisions.add')}
             </Button>
           </div>
 
           {showNewDecision && (
             <div className="mb-4 p-3 rounded-lg border border-orange-500/20 bg-stone-800/50 space-y-2">
               <Input
-                placeholder="Decision content..."
+                placeholder={t('memory.project.decisions.placeholder')}
                 value={newDecision.content}
                 onChange={(e) => setNewDecision({ ...newDecision, content: e.target.value })}
                 className="bg-stone-800 border-stone-700 text-white text-sm"
               />
               <Textarea
-                placeholder="Rationale..."
+                placeholder={t('memory.project.decisions.rationalePlaceholder')}
                 value={newDecision.rationale}
                 onChange={(e) => setNewDecision({ ...newDecision, rationale: e.target.value })}
                 className="bg-stone-800 border-stone-700 text-white text-sm min-h-[60px]"
@@ -618,11 +632,11 @@ function ProjectMemoryView({ projectPath }: { projectPath: string }) {
                   className="bg-orange-500 hover:bg-orange-400"
                 >
                   <Save className="w-3 h-3 mr-1" />
-                  Save
+                  {t('memory.project.decisions.save')}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setShowNewDecision(false)}>
                   <X className="w-3 h-3 mr-1" />
-                  Cancel
+                  {t('memory.project.decisions.cancel')}
                 </Button>
               </div>
             </div>
@@ -643,7 +657,7 @@ function ProjectMemoryView({ projectPath }: { projectPath: string }) {
                     )}
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="outline" className="text-xs bg-green-500/20 text-green-400">
-                        Active
+                        {t('memory.project.status.active')}
                       </Badge>
                       <span className="text-xs text-stone-500">
                         {new Date(decision.timestamp).toLocaleDateString()}
@@ -652,14 +666,14 @@ function ProjectMemoryView({ projectPath }: { projectPath: string }) {
                   </div>
                 ))
             ) : (
-              <p className="text-sm text-stone-500">No decisions recorded yet</p>
+              <p className="text-sm text-stone-500">{t('memory.project.decisions.noDecisions')}</p>
             )}
           </div>
         </section>
 
         {/* Known Issues */}
         <section>
-          <h4 className="text-sm font-medium text-white mb-3">Known Issues</h4>
+          <h4 className="text-sm font-medium text-white mb-3">{t('memory.project.issues.title')}</h4>
           <div className="space-y-2">
             {project.knownIssues.length ? (
               project.knownIssues.map((issue) => (
@@ -686,13 +700,13 @@ function ProjectMemoryView({ projectPath }: { projectPath: string }) {
                   </div>
                   {issue.workaround && (
                     <p className="text-xs text-stone-400 mt-1">
-                      Workaround: {issue.workaround}
+                      {t('memory.project.issues.workaround', { text: issue.workaround })}
                     </p>
                   )}
                 </div>
               ))
             ) : (
-              <p className="text-sm text-stone-500">No known issues</p>
+              <p className="text-sm text-stone-500">{t('memory.project.issues.noIssues')}</p>
             )}
           </div>
         </section>
@@ -730,6 +744,7 @@ function FactItem({
   onVerify: (verified: boolean) => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const Icon = factTypeIcons[fact.type];
 
   return (
@@ -749,7 +764,7 @@ function FactItem({
             <p className="text-sm text-stone-200">{fact.content}</p>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <Badge variant="outline" className={`text-xs ${factTypeColors[fact.type]}`}>
-                {fact.type}
+                {t(`memory.factTypes.${fact.type}`)}
               </Badge>
               <span className="text-xs text-stone-500">
                 {new Date(fact.timestamp).toLocaleString()}
@@ -763,14 +778,14 @@ function FactItem({
                       : 'text-stone-500'
                 }`}
               >
-                {(fact.confidence * 100).toFixed(0)}% confidence
+                {t('memory.thread.facts.confidence', { percent: (fact.confidence * 100).toFixed(0) })}
               </span>
               {fact.verified && (
                 <Badge
                   variant="outline"
                   className="text-xs bg-green-500/20 text-green-400 border-green-500/30"
                 >
-                  Verified
+                  {t('memory.thread.facts.verified')}
                 </Badge>
               )}
             </div>
@@ -786,7 +801,7 @@ function FactItem({
               fact.verified ? 'text-green-400 hover:text-green-300' : 'text-stone-500 hover:text-green-400'
             }
           >
-            {fact.verified ? 'Unverify' : 'Verify'}
+            {fact.verified ? t('memory.thread.facts.unverify') : t('memory.thread.facts.verify')}
           </Button>
           <Button variant="ghost" size="sm" onClick={onDelete} className="text-stone-500 hover:text-red-400">
             <Trash2 className="w-4 h-4" />

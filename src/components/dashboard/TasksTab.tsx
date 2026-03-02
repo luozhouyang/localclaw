@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   CheckSquare,
   Plus,
@@ -42,12 +43,17 @@ const statusColors = {
   interrupted: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
 };
 
+/**
+ * ProgressBar component
+ * Displays task progress with percentage
+ */
 function ProgressBar({ progress }: { progress: TaskInstance['progress'] }) {
+  const { t } = useTranslation();
   return (
     <div className="mt-2">
       <div className="flex justify-between text-xs text-stone-400 mb-1">
-        <span>{progress.message || 'Processing...'}</span>
-        <span>{progress.percent}%</span>
+        <span>{progress.message || t('tasks.progress.processing')}</span>
+        <span>{t('tasks.progress.percent', { percent: progress.percent })}</span>
       </div>
       <div className="h-1.5 bg-stone-700 rounded-full overflow-hidden">
         <div
@@ -59,7 +65,12 @@ function ProgressBar({ progress }: { progress: TaskInstance['progress'] }) {
   );
 }
 
+/**
+ * TasksTab component
+ * Task manager interface for viewing and managing async tasks
+ */
 export function TasksTab() {
+  const { t } = useTranslation();
   const {
     tasks: asyncTasks,
     isLoading,
@@ -151,9 +162,9 @@ export function TasksTab() {
         <div className="flex items-center gap-3">
           <CheckSquare className="w-6 h-6 text-orange-400" />
           <div>
-            <h2 className="font-display text-lg font-bold text-white">TASK MANAGER</h2>
+            <h2 className="font-display text-lg font-bold text-white">{t('tasks.title')}</h2>
             <p className="text-xs text-orange-400/70 font-code">
-              {stats.completed}/{stats.total} completed • {stats.inProgress} running
+              {t('tasks.stats', { completed: stats.completed, total: stats.total, running: stats.inProgress })}
             </p>
           </div>
         </div>
@@ -166,7 +177,7 @@ export function TasksTab() {
             className="border-orange-500/30 hover:bg-orange-500/10"
           >
             <Plus className="w-4 h-4 mr-2" />
-            New Task
+            {t('tasks.newTask')}
           </Button>
           <Button
             variant="outline"
@@ -196,7 +207,7 @@ export function TasksTab() {
                   : 'text-stone-400 hover:text-orange-400'
               }`}
             >
-              {status === 'all' ? 'All' : status}
+              {t(`tasks.status.${status}`)}
             </Button>
           ))}
         </div>
@@ -208,7 +219,7 @@ export function TasksTab() {
           <AlertCircle className="w-4 h-4 text-red-400" />
           <p className="text-sm text-red-400">{error}</p>
           <Button variant="ghost" size="sm" onClick={refresh} className="ml-auto text-red-400">
-            Retry
+            {t('common.retry')}
           </Button>
         </div>
       )}
@@ -223,10 +234,10 @@ export function TasksTab() {
           <div className="flex flex-col items-center justify-center h-full text-stone-500">
             <CheckSquare className="w-16 h-16 mb-4 opacity-30" />
             <p className="font-code text-sm">
-              {filter === 'all' ? 'No tasks yet' : `No ${filter} tasks`}
+              {filter === 'all' ? t('tasks.emptyState.noTasks') : t('tasks.emptyState.noFilteredTasks', { status: filter })}
             </p>
             <p className="text-xs mt-2">
-              {filter === 'all' ? 'Create a task to get started' : 'Try a different filter'}
+              {filter === 'all' ? t('tasks.emptyState.createTask') : t('tasks.emptyState.tryDifferentFilter')}
             </p>
           </div>
         ) : (
@@ -256,7 +267,7 @@ export function TasksTab() {
                         variant="outline"
                         className={`text-xs ${statusColors[task.status]}`}
                       >
-                        {task.status}
+                        {t(`tasks.status.${task.status}`)}
                       </Badge>
                     </div>
 
@@ -278,7 +289,7 @@ export function TasksTab() {
                     {/* Error display */}
                     {task.error && (
                       <p className="text-xs text-red-400 mt-2 line-clamp-2">
-                        Error: {task.error.message}
+                        {t('tasks.error', { message: task.error.message })}
                       </p>
                     )}
 
@@ -289,7 +300,7 @@ export function TasksTab() {
                       </span>
                       {task.retryCount > 0 && (
                         <span className="text-orange-400">
-                          {task.retryCount} retries
+                          {t('tasks.retries', { count: task.retryCount })}
                         </span>
                       )}
                     </div>
@@ -303,7 +314,7 @@ export function TasksTab() {
                         size="icon"
                         onClick={() => resumeTask(task.id)}
                         className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                        title="Start"
+                        title={t('tasks.actions.start')}
                       >
                         <Play className="w-4 h-4" />
                       </Button>
@@ -315,7 +326,7 @@ export function TasksTab() {
                         size="icon"
                         onClick={() => resumeTask(task.id)}
                         className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
-                        title="Resume"
+                        title={t('tasks.actions.resume')}
                       >
                         <RotateCcw className="w-4 h-4" />
                       </Button>
@@ -327,7 +338,7 @@ export function TasksTab() {
                         size="icon"
                         onClick={() => resumeTask(task.id)}
                         className="text-stone-400 hover:text-orange-400"
-                        title="Retry"
+                        title={t('tasks.actions.retry')}
                       >
                         <RotateCcw className="w-4 h-4" />
                       </Button>
@@ -339,7 +350,7 @@ export function TasksTab() {
                         size="icon"
                         onClick={() => cancelTask(task.id)}
                         className="text-stone-400 hover:text-red-400"
-                        title="Cancel"
+                        title={t('tasks.actions.cancel')}
                       >
                         <X className="w-4 h-4" />
                       </Button>
@@ -350,7 +361,7 @@ export function TasksTab() {
                       size="icon"
                       onClick={() => setDeleteTarget(task)}
                       className="text-stone-400 hover:text-red-400"
-                      title="Delete"
+                      title={t('tasks.actions.delete')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -366,22 +377,22 @@ export function TasksTab() {
       <Dialog open={showNewTaskDialog} onOpenChange={setShowNewTaskDialog}>
         <DialogContent className="bg-stone-900 border-orange-500/20">
           <DialogHeader>
-            <DialogTitle className="text-white">Create New Task</DialogTitle>
+            <DialogTitle className="text-white">{t('tasks.dialogs.newTask.title')}</DialogTitle>
             <DialogDescription className="text-stone-400">
-              Schedule a new async task
+              {t('tasks.dialogs.newTask.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Input
               value={newTaskType}
               onChange={(e) => setNewTaskType(e.target.value)}
-              placeholder="Task type (e.g., 'file-processor')"
+              placeholder={t('tasks.dialogs.newTask.typePlaceholder')}
               className="bg-stone-800 border-orange-500/30 text-white"
             />
             <Input
               value={newTaskInput}
               onChange={(e) => setNewTaskInput(e.target.value)}
-              placeholder="Input (JSON or text)"
+              placeholder={t('tasks.dialogs.newTask.inputPlaceholder')}
               className="bg-stone-800 border-orange-500/30 text-white"
             />
             <Select
@@ -389,26 +400,26 @@ export function TasksTab() {
               onValueChange={(v) => setNewTaskPriority(v as TaskPriority)}
             >
               <SelectTrigger className="bg-stone-800 border-orange-500/30 text-white">
-                <SelectValue placeholder="Priority" />
+                <SelectValue placeholder={t('tasks.dialogs.newTask.priority.label')} />
               </SelectTrigger>
               <SelectContent className="bg-stone-900 border-orange-500/20">
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
+                <SelectItem value="low">{t('tasks.dialogs.newTask.priority.low')}</SelectItem>
+                <SelectItem value="normal">{t('tasks.dialogs.newTask.priority.normal')}</SelectItem>
+                <SelectItem value="high">{t('tasks.dialogs.newTask.priority.high')}</SelectItem>
+                <SelectItem value="critical">{t('tasks.dialogs.newTask.priority.critical')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewTaskDialog(false)}>
-              Cancel
+              {t('tasks.dialogs.newTask.cancel')}
             </Button>
             <Button
               onClick={handleCreateTask}
               disabled={!newTaskType.trim()}
               className="bg-orange-500 hover:bg-orange-400"
             >
-              Create Task
+              {t('tasks.dialogs.newTask.create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -418,17 +429,17 @@ export function TasksTab() {
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <DialogContent className="bg-stone-900 border-red-500/20">
           <DialogHeader>
-            <DialogTitle className="text-white">Confirm Delete</DialogTitle>
+            <DialogTitle className="text-white">{t('tasks.dialogs.delete.title')}</DialogTitle>
             <DialogDescription className="text-stone-400">
-              Are you sure you want to delete task &quot;{deleteTarget?.type}&quot;? This action cannot be undone.
+              {t('tasks.dialogs.delete.description', { type: deleteTarget?.type })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t('tasks.dialogs.delete.cancel')}
             </Button>
             <Button onClick={handleDelete} variant="destructive">
-              Delete
+              {t('tasks.dialogs.delete.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

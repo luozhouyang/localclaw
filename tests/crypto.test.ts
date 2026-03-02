@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { encryptWithPassword, decryptWithPassword, generateSaltAndIV } from '@/lib/crypto'
 
 describe('crypto', () => {

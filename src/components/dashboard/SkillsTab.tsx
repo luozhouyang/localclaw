@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Puzzle,
   Search,
@@ -35,7 +36,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+/**
+ * SkillsTab component
+ * Skill manager interface for installing and managing skills
+ */
 export function SkillsTab() {
+  const { t } = useTranslation();
   const {
     skills,
     activeSkills,
@@ -153,7 +159,7 @@ export function SkillsTab() {
               {isActive && (
                 <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
                   <Check className="w-3 h-3 mr-1" />
-                  Active
+                  {t('skills.card.active')}
                 </Badge>
               )}
             </div>
@@ -161,7 +167,7 @@ export function SkillsTab() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-stone-300 mb-3 line-clamp-2">
-            {skill.description || 'No description available'}
+            {skill.description || t('skills.card.noDescription')}
           </p>
           {skill.triggers && skill.triggers.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-3">
@@ -178,7 +184,7 @@ export function SkillsTab() {
           )}
           <div className="flex items-center justify-between">
             <span className="text-xs text-stone-500">
-              {skill.author ? `by ${skill.author}` : 'LocalClaw Team'}
+              {skill.author ? t('skills.card.byAuthor', { author: skill.author }) : t('skills.card.byTeam')}
             </span>
             <div className="flex items-center gap-2">
               {isInstalled ? (
@@ -204,12 +210,12 @@ export function SkillsTab() {
                     {isActive ? (
                       <>
                         <X className="w-4 h-4 mr-1" />
-                        Deactivate
+                        {t('skills.card.deactivate')}
                       </>
                     ) : (
                       <>
                         <Check className="w-4 h-4 mr-1" />
-                        Activate
+                        {t('skills.card.activate')}
                       </>
                     )}
                   </Button>
@@ -222,7 +228,7 @@ export function SkillsTab() {
                   className="bg-orange-500 hover:bg-orange-400"
                 >
                   <Download className="w-4 h-4 mr-1" />
-                  Install
+                  {t('common.install')}
                 </Button>
               )}
             </div>
@@ -242,9 +248,9 @@ export function SkillsTab() {
             <div className="absolute inset-0 blur-lg bg-orange-400/50 -z-10" />
           </div>
           <div>
-            <h2 className="font-display text-lg font-bold text-white">SKILLS MANAGER</h2>
+            <h2 className="font-display text-lg font-bold text-white">{t('skills.title')}</h2>
             <p className="text-xs text-orange-400/70 font-code">
-              {activeSkills.length} active • {skills.length} total
+              {t('skills.stats', { active: activeSkills.length, total: skills.length })}
             </p>
           </div>
         </div>
@@ -275,11 +281,11 @@ export function SkillsTab() {
           <TabsList className="grid w-full grid-cols-2 bg-stone-800/50">
             <TabsTrigger value="installed" className="data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400">
               <Sparkles className="w-4 h-4 mr-2" />
-              Installed
+              {t('skills.tabs.installed')}
             </TabsTrigger>
             <TabsTrigger value="marketplace" className="data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400">
               <Globe className="w-4 h-4 mr-2" />
-              Marketplace
+              {t('skills.tabs.marketplace')}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -288,8 +294,8 @@ export function SkillsTab() {
           {skills.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-stone-500">
               <Puzzle className="w-16 h-16 mb-4 opacity-30" />
-              <p className="font-code text-sm">No skills installed</p>
-              <p className="text-xs mt-2">Browse the marketplace to add skills</p>
+              <p className="font-code text-sm">{t('skills.emptyState.noSkills')}</p>
+              <p className="text-xs mt-2">{t('skills.emptyState.browseMarketplace')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -303,7 +309,7 @@ export function SkillsTab() {
           <div className="px-6 py-4 border-b border-orange-500/10">
             <div className="flex gap-2 mb-4">
               <Input
-                placeholder="Search for skills..."
+                placeholder={t('skills.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -325,7 +331,7 @@ export function SkillsTab() {
                 className="border-orange-500/30 hover:bg-orange-500/10"
               >
                 <Globe className="w-4 h-4 mr-2" />
-                Install from URL
+                {t('skills.install.fromUrl')}
               </Button>
               <Button
                 variant="outline"
@@ -334,7 +340,7 @@ export function SkillsTab() {
                 className="border-orange-500/30 hover:bg-orange-500/10"
               >
                 <Github className="w-4 h-4 mr-2" />
-                Install from GitHub
+                {t('skills.install.fromGitHub')}
               </Button>
             </div>
           </div>
@@ -344,8 +350,8 @@ export function SkillsTab() {
             {remoteResults.length === 0 && !isSearching && (
               <div className="flex flex-col items-center justify-center h-full text-stone-500">
                 <Globe className="w-16 h-16 mb-4 opacity-30" />
-                <p className="font-code text-sm">Search the marketplace</p>
-                <p className="text-xs mt-2">Find skills to enhance your agent</p>
+                <p className="font-code text-sm">{t('skills.emptyState.searchMarketplace')}</p>
+                <p className="text-xs mt-2">{t('skills.emptyState.findSkills')}</p>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -359,28 +365,28 @@ export function SkillsTab() {
       <Dialog open={showUrlDialog} onOpenChange={setShowUrlDialog}>
         <DialogContent className="bg-stone-900 border-orange-500/20">
           <DialogHeader>
-            <DialogTitle className="text-white">Install from URL</DialogTitle>
+            <DialogTitle className="text-white">{t('skills.dialogs.url.title')}</DialogTitle>
             <DialogDescription className="text-stone-400">
-              Enter the URL to a SKILL.md file
+              {t('skills.dialogs.url.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Input
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              placeholder="https://example.com/path/to/SKILL.md"
+              placeholder={t('skills.install.urlPlaceholder')}
               className="bg-stone-800 border-orange-500/30 text-white"
             />
             <Input
               value={urlIdInput}
               onChange={(e) => setUrlIdInput(e.target.value)}
-              placeholder="Skill ID (optional)"
+              placeholder={t('skills.install.idPlaceholder')}
               className="bg-stone-800 border-orange-500/30 text-white"
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowUrlDialog(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={handleInstallFromUrl}
@@ -388,7 +394,7 @@ export function SkillsTab() {
               className="bg-orange-500 hover:bg-orange-400"
             >
               {isInstalling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Install
+              {t('skills.dialogs.url.install')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -398,9 +404,9 @@ export function SkillsTab() {
       <Dialog open={showGitHubDialog} onOpenChange={setShowGitHubDialog}>
         <DialogContent className="bg-stone-900 border-orange-500/20">
           <DialogHeader>
-            <DialogTitle className="text-white">Install from GitHub</DialogTitle>
+            <DialogTitle className="text-white">{t('skills.dialogs.github.title')}</DialogTitle>
             <DialogDescription className="text-stone-400">
-              Install a skill from a GitHub repository
+              {t('skills.dialogs.github.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -408,27 +414,27 @@ export function SkillsTab() {
               <Input
                 value={githubOwner}
                 onChange={(e) => setGithubOwner(e.target.value)}
-                placeholder="Owner"
+                placeholder={t('skills.install.ownerPlaceholder')}
                 className="bg-stone-800 border-orange-500/30 text-white"
               />
               <span className="text-stone-500 flex items-center">/</span>
               <Input
                 value={githubRepo}
                 onChange={(e) => setGithubRepo(e.target.value)}
-                placeholder="Repo"
+                placeholder={t('skills.install.repoPlaceholder')}
                 className="bg-stone-800 border-orange-500/30 text-white"
               />
             </div>
             <Input
               value={githubPath}
               onChange={(e) => setGithubPath(e.target.value)}
-              placeholder="Path (default: SKILL.md)"
+              placeholder={t('skills.install.pathPlaceholder')}
               className="bg-stone-800 border-orange-500/30 text-white"
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowGitHubDialog(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={handleInstallFromGitHub}
@@ -436,7 +442,7 @@ export function SkillsTab() {
               className="bg-orange-500 hover:bg-orange-400"
             >
               {isInstalling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Install
+              {t('skills.dialogs.github.install')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -446,17 +452,17 @@ export function SkillsTab() {
       <Dialog open={!!uninstallTarget} onOpenChange={() => setUninstallTarget(null)}>
         <DialogContent className="bg-stone-900 border-red-500/20">
           <DialogHeader>
-            <DialogTitle className="text-white">Confirm Uninstall</DialogTitle>
+            <DialogTitle className="text-white">{t('skills.dialogs.uninstall.title')}</DialogTitle>
             <DialogDescription className="text-stone-400">
-              Are you sure you want to uninstall &quot;{uninstallTarget?.name}&quot;? This action cannot be undone.
+              {t('skills.dialogs.uninstall.description', { name: uninstallTarget?.name })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setUninstallTarget(null)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleUninstall} variant="destructive">
-              Uninstall
+              {t('skills.dialogs.uninstall.uninstall')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useCronScheduler } from '@/hooks/use-cron-scheduler';
 import { CronParser, CRON_PRESET_DESCRIPTIONS, type CronJob } from '@/crontab';
 import { Button } from '@/components/ui/button';
@@ -32,7 +33,12 @@ import {
 import { cn } from '@/lib/utils';
 import { NewJobForm } from './NewJobForm';
 
+/**
+ * CrontabTab component
+ * Cron job scheduler interface for managing scheduled tasks
+ */
 export function CrontabTab() {
+  const { t } = useTranslation();
   const {
     jobs,
     isInitialized,
@@ -51,7 +57,7 @@ export function CrontabTab() {
       return (
         <Badge variant="destructive" className="font-code text-xs">
           <AlertCircle className="w-3 h-3 mr-1" />
-          ERROR
+          {t('crontab.status.error')}
         </Badge>
       );
     }
@@ -62,7 +68,7 @@ export function CrontabTab() {
           className="font-code text-xs bg-amber-500/20 text-amber-400 border-amber-500/30"
         >
           <Pause className="w-3 h-3 mr-1" />
-          PAUSED
+          {t('crontab.status.paused')}
         </Badge>
       );
     }
@@ -73,7 +79,7 @@ export function CrontabTab() {
           className="font-code text-xs bg-green-500/20 text-green-400 border-green-500/30"
         >
           <CheckCircle2 className="w-3 h-3 mr-1" />
-          COMPLETED
+          {t('crontab.status.completed')}
         </Badge>
       );
     }
@@ -83,7 +89,7 @@ export function CrontabTab() {
         className="font-code text-xs bg-orange-500/20 text-orange-400 border-orange-500/30"
       >
         <Clock className="w-3 h-3 mr-1" />
-        ACTIVE
+        {t('crontab.status.active')}
       </Badge>
     );
   };
@@ -117,7 +123,7 @@ export function CrontabTab() {
             <div className="text-2xl font-bold text-white font-display">
               {stats?.totalJobs || 0}
             </div>
-            <div className="text-xs text-orange-500/70 font-code">TOTAL JOBS</div>
+            <div className="text-xs text-orange-500/70 font-code">{t('crontab.stats.totalJobs')}</div>
           </CardContent>
         </Card>
 
@@ -126,7 +132,7 @@ export function CrontabTab() {
             <div className="text-2xl font-bold text-orange-400 font-display">
               {stats?.activeJobs || 0}
             </div>
-            <div className="text-xs text-orange-500/70 font-code">ACTIVE</div>
+            <div className="text-xs text-orange-500/70 font-code">{t('crontab.stats.activeJobs')}</div>
           </CardContent>
         </Card>
 
@@ -135,7 +141,7 @@ export function CrontabTab() {
             <div className="text-2xl font-bold text-amber-400 font-display">
               {stats?.pausedJobs || 0}
             </div>
-            <div className="text-xs text-orange-500/70 font-code">PAUSED</div>
+            <div className="text-xs text-orange-500/70 font-code">{t('crontab.stats.pausedJobs')}</div>
           </CardContent>
         </Card>
 
@@ -144,7 +150,7 @@ export function CrontabTab() {
             <div className="text-2xl font-bold text-red-400 font-display">
               {stats?.errorJobs || 0}
             </div>
-            <div className="text-xs text-orange-500/70 font-code">ERRORS</div>
+            <div className="text-xs text-orange-500/70 font-code">{t('crontab.stats.errorJobs')}</div>
           </CardContent>
         </Card>
       </div>
@@ -159,7 +165,7 @@ export function CrontabTab() {
             className="glass border-orange-500/30 text-orange-400 hover:bg-orange-500/10 font-code"
           >
             <RotateCw className="w-4 h-4 mr-2" />
-            REFRESH
+            {t('crontab.actions.refresh')}
           </Button>
         </div>
 
@@ -170,13 +176,13 @@ export function CrontabTab() {
               className="bg-orange-500 hover:bg-orange-600 text-white font-code"
             >
               <Plus className="w-4 h-4 mr-2" />
-              NEW JOB
+              {t('crontab.actions.newJob')}
             </Button>
           </DialogTrigger>
           <DialogContent className="glass-panel border-orange-500/20 max-w-2xl">
             <DialogHeader>
               <DialogTitle className="font-display text-white">
-                Create New Cron Job
+                {t('crontab.dialogs.newJob.title')}
               </DialogTitle>
             </DialogHeader>
             <NewJobForm onSuccess={() => setShowNewJobDialog(false)} />
@@ -188,7 +194,7 @@ export function CrontabTab() {
       {!isInitialized ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-orange-500 font-code animate-pulse">
-            INITIALIZING...
+            {t('common.initializing')}
           </div>
         </div>
       ) : jobs.length === 0 ? (
@@ -196,18 +202,17 @@ export function CrontabTab() {
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Clock className="w-16 h-16 text-orange-500/30 mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2 font-display">
-              No Jobs Scheduled
+              {t('crontab.emptyState.title')}
             </h3>
             <p className="text-sm text-orange-500/60 mb-6 font-code text-center max-w-md">
-              Create your first cron job to automate tasks. Jobs will persist
-              even when the browser is closed.
+              {t('crontab.emptyState.description')}
             </p>
             <Button
               onClick={() => setShowNewJobDialog(true)}
               className="bg-orange-500 hover:bg-orange-600 text-white font-code"
             >
               <Plus className="w-4 h-4 mr-2" />
-              CREATE JOB
+              {t('crontab.emptyState.createJob')}
             </Button>
           </CardContent>
         </Card>
@@ -234,7 +239,7 @@ export function CrontabTab() {
                           variant="outline"
                           className="text-xs border-red-500/50 text-red-400 font-code"
                         >
-                          {job.consecutiveErrors} ERRORS
+                          {t('crontab.job.consecutiveErrors', { count: job.consecutiveErrors })}
                         </Badge>
                       )}
                     </div>
@@ -252,16 +257,16 @@ export function CrontabTab() {
                       </div>
 
                       <div className="flex items-center gap-2 text-orange-500/60 font-code">
-                        <span className="text-xs">TYPE:</span>
+                        <span className="text-xs">{t('crontab.job.type')}:</span>
                         <span className="text-orange-400">{job.taskType}</span>
                       </div>
 
                       {job.runCount > 0 && (
                         <div className="flex items-center gap-2 text-orange-500/60 font-code">
-                          <span className="text-xs">RUNS:</span>
+                          <span className="text-xs">{t('crontab.job.runs')}:</span>
                           <span className="text-orange-400">{job.runCount}</span>
                           {job.maxRuns && (
-                            <span className="text-xs">/ {job.maxRuns}</span>
+                            <span className="text-xs">{t('crontab.job.maxRuns', { count: job.maxRuns })}</span>
                           )}
                         </div>
                       )}
@@ -270,7 +275,7 @@ export function CrontabTab() {
                     <div className="flex items-center gap-6 mt-3 text-xs font-code">
                       {job.lastRunAt && (
                         <span className="text-orange-500/50">
-                          LAST:{" "}
+                          {t('crontab.job.lastRun')}:{" "}
                           <span className="text-orange-400">
                             {formatTime(job.lastRunAt)}
                           </span>
@@ -278,7 +283,7 @@ export function CrontabTab() {
                       )}
                       {job.nextRunAt && job.enabled && (
                         <span className="text-orange-500/50">
-                          NEXT:{" "}
+                          {t('crontab.job.nextRun')}:{" "}
                           <span className="text-green-400">
                             {formatTime(job.nextRunAt)}
                           </span>
@@ -340,7 +345,7 @@ export function CrontabTab() {
                           className="text-red-400 focus:text-red-400 focus:bg-red-500/10 font-code"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          DELETE
+                          {t('crontab.actions.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

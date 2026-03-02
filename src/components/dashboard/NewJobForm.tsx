@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +19,12 @@ interface NewJobFormProps {
   onSuccess?: () => void;
 }
 
+/**
+ * NewJobForm component
+ * Form for creating new cron jobs
+ */
 export function NewJobForm({ onSuccess }: NewJobFormProps) {
+  const { t } = useTranslation();
   const { addJob } = useCronScheduler();
 
   const [name, setName] = useState('');
@@ -36,11 +42,11 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
   }));
 
   const taskTypes = [
-    { value: 'summary', label: 'Summary Generation' },
-    { value: 'backup', label: 'Backup Task' },
-    { value: 'sync', label: 'Sync Task' },
-    { value: 'cleanup', label: 'Cleanup Task' },
-    { value: 'custom', label: 'Custom Task' },
+    { value: 'summary', label: t('newJobForm.fields.taskType.options.summary') },
+    { value: 'backup', label: t('newJobForm.fields.taskType.options.backup') },
+    { value: 'sync', label: t('newJobForm.fields.taskType.options.sync') },
+    { value: 'cleanup', label: t('newJobForm.fields.taskType.options.cleanup') },
+    { value: 'custom', label: t('newJobForm.fields.taskType.options.custom') },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,7 +54,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
     setError(null);
 
     if (!name.trim()) {
-      setError('Job name is required');
+      setError(t('newJobForm.errors.nameRequired'));
       return;
     }
 
@@ -57,7 +63,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
     // Validate schedule
     const validation = CronParser.validate(finalSchedule);
     if (!validation.valid) {
-      setError(`Invalid schedule: ${validation.error}`);
+      setError(t('newJobForm.errors.invalidSchedule', { error: validation.error }));
       return;
     }
 
@@ -92,33 +98,33 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="name" className="text-white font-code">
-          Job Name *
+          {t('newJobForm.fields.name.label')}
         </Label>
         <Input
           id="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., Daily Summary"
+          placeholder={t('newJobForm.fields.name.placeholder')}
           className="bg-black/50 border-orange-500/30 text-white font-code placeholder:text-orange-500/40"
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="description" className="text-white font-code">
-          Description
+          {t('newJobForm.fields.description.label')}
         </Label>
         <Input
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Optional description of what this job does"
+          placeholder={t('newJobForm.fields.description.placeholder')}
           className="bg-black/50 border-orange-500/30 text-white font-code placeholder:text-orange-500/40"
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="taskType" className="text-white font-code">
-          Task Type
+          {t('newJobForm.fields.taskType.label')}
         </Label>
         <Select value={taskType} onValueChange={setTaskType}>
           <SelectTrigger className="bg-black/50 border-orange-500/30 text-white font-code">
@@ -140,7 +146,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="schedule" className="text-white font-code">
-          Schedule
+          {t('newJobForm.fields.schedule.label')}
         </Label>
         <Select value={schedule} onValueChange={setSchedule}>
           <SelectTrigger className="bg-black/50 border-orange-500/30 text-white font-code">
@@ -160,7 +166,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
               value="custom"
               className="text-white font-code focus:bg-orange-500/20 focus:text-white"
             >
-              Custom Cron Expression
+              {t('newJobForm.fields.schedule.custom')}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -169,19 +175,19 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
       {schedule === 'custom' && (
         <div className="space-y-2">
           <Label htmlFor="customSchedule" className="text-white font-code">
-            Cron Expression *
+            {t('newJobForm.fields.cronExpression.label')}
           </Label>
           <div className="flex gap-2">
             <Input
               id="customSchedule"
               value={customSchedule}
               onChange={(e) => setCustomSchedule(e.target.value)}
-              placeholder="0 0 * * *"
+              placeholder={t('newJobForm.fields.cronExpression.placeholder')}
               className="bg-black/50 border-orange-500/30 text-white font-code placeholder:text-orange-500/40"
             />
           </div>
           <p className="text-xs text-orange-500/60 font-code">
-            Format: minute hour day month dayOfWeek (e.g., "0 9 * * 1" for every Monday at 9am)
+            {t('newJobForm.fields.cronExpression.description')}
           </p>
         </div>
       )}
@@ -194,7 +200,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
             onCheckedChange={setEnabled}
           />
           <Label htmlFor="enabled" className="text-white font-code cursor-pointer">
-            Enable immediately
+            {t('newJobForm.fields.enabled')}
           </Label>
         </div>
       </div>
@@ -204,7 +210,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
           <div className="flex items-center gap-2 text-sm text-orange-400 font-code">
             <Clock className="w-4 h-4" />
             <span>
-              Next run:{' '}
+              {t('newJobForm.nextRun')}:{' '}
               {new Date(CronParser.getNextRunTime(schedule)).toLocaleString('zh-CN')}
             </span>
           </div>
@@ -220,10 +226,10 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              CREATING...
+              {t('newJobForm.actions.creating')}
             </>
           ) : (
-            'CREATE JOB'
+            t('newJobForm.actions.create')
           )}
         </Button>
       </div>

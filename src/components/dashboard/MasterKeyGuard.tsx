@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Lock, Key, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,15 +11,16 @@ interface MasterKeyGuardProps {
 }
 
 /**
- * MasterKeyGuard - 统一处理 Dashboard 的 Master Key 流程
+ * MasterKeyGuard - Unified handler for Dashboard Master Key flow
  *
- * 状态处理：
- * 1. checking - 加载中
- * 2. not_set - 首次使用，需要设置 master key 和 provider
- * 3. locked - 需要解锁
- * 4. unlocked - 正常使用
+ * State handling:
+ * 1. checking - Loading state
+ * 2. not_set - First use, need to set master key and provider
+ * 3. locked - Need to unlock
+ * 4. unlocked - Normal usage
  */
 export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
+  const { t } = useTranslation();
   const { status, isLoading, error, setMasterKey, unlock } = useMasterPasswordContext();
 
   // Get auto-unlock error if locked
@@ -77,7 +79,7 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
     const success = await unlock(unlockPassword.trim(), rememberMe);
 
     if (!success) {
-      setUnlockError('Invalid master password');
+      setUnlockError(t('masterKey.errors.invalidPassword'));
     }
 
     setIsUnlocking(false);
@@ -89,7 +91,7 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
       <div className="min-h-screen bg-stone-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
-          <p className="text-stone-400 font-code text-sm">Checking...</p>
+          <p className="text-stone-400 font-code text-sm">{t('masterKey.checking')}</p>
         </div>
       </div>
     );
@@ -106,16 +108,16 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
                 <Key className="w-10 h-10 text-orange-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white mb-2">Welcome to LocalClaw</h1>
+                <h1 className="text-2xl font-bold text-white mb-2">{t('masterKey.welcome.title')}</h1>
                 <p className="text-stone-400 text-sm">
-                  To get started, you need to set up a master password to protect your API keys.
+                  {t('masterKey.welcome.description')}
                 </p>
               </div>
               <Button
                 onClick={() => setStep('set_key')}
                 className="bg-orange-500 hover:bg-orange-400 text-white px-8"
               >
-                Get Started
+                {t('masterKey.welcome.getStarted')}
               </Button>
             </div>
           )}
@@ -127,31 +129,31 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
                   <Lock className="w-5 h-5 text-orange-400" />
                 </div>
                 <div>
-                  <h2 className="font-medium text-white">Set Master Password</h2>
-                  <p className="text-xs text-stone-400">This will be used to encrypt your API keys</p>
+                  <h2 className="font-medium text-white">{t('masterKey.setup.title')}</h2>
+                  <p className="text-xs text-stone-400">{t('masterKey.setup.description')}</p>
                 </div>
               </div>
 
               <form onSubmit={handleSetup} className="space-y-4">
                 <div>
-                  <label className="text-xs text-stone-400 mb-1 block">Master Password</label>
+                  <label className="text-xs text-stone-400 mb-1 block">{t('masterKey.setup.passwordLabel')}</label>
                   <Input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password (min 8 characters)"
+                    placeholder={t('masterKey.setup.passwordPlaceholder')}
                     disabled={isSettingUp}
                     className="bg-stone-950 border-orange-500/30 focus:border-orange-400 text-white placeholder:text-stone-600"
                     autoFocus
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-stone-400 mb-1 block">Confirm Password</label>
+                  <label className="text-xs text-stone-400 mb-1 block">{t('masterKey.setup.confirmLabel')}</label>
                   <Input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm password"
+                    placeholder={t('masterKey.setup.confirmPlaceholder')}
                     disabled={isSettingUp}
                     className="bg-stone-950 border-orange-500/30 focus:border-orange-400 text-white placeholder:text-stone-600"
                   />
@@ -172,7 +174,7 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
                     disabled={isSettingUp}
                     className="flex-1 border-stone-600 text-stone-300 hover:bg-stone-800"
                   >
-                    Back
+                    {t('masterKey.setup.back')}
                   </Button>
                   <Button
                     type="submit"
@@ -182,7 +184,7 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
                     {isSettingUp ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      'Continue'
+                      t('masterKey.setup.continue')
                     )}
                   </Button>
                 </div>
@@ -196,16 +198,16 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
                 <Lock className="w-10 h-10 text-green-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white mb-2">Master Password Set!</h2>
+                <h2 className="text-xl font-bold text-white mb-2">{t('masterKey.configured.title')}</h2>
                 <p className="text-stone-400 text-sm mb-4">
-                  Your master password has been saved. Now let's configure your LLM provider.
+                  {t('masterKey.configured.description')}
                 </p>
               </div>
               <Button
                 onClick={() => window.location.href = '/settings/config'}
                 className="bg-orange-500 hover:bg-orange-400 text-white px-8"
               >
-                Configure Provider
+                {t('masterKey.configured.configure')}
               </Button>
             </div>
           )}
@@ -224,8 +226,8 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
               <Lock className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <h2 className="font-medium text-white">Unlock LocalClaw</h2>
-              <p className="text-xs text-stone-400">Enter your master password to continue</p>
+              <h2 className="font-medium text-white">{t('masterKey.unlock.title')}</h2>
+              <p className="text-xs text-stone-400">{t('masterKey.unlock.description')}</p>
             </div>
           </div>
 
@@ -234,7 +236,7 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
               type="password"
               value={unlockPassword}
               onChange={(e) => setUnlockPassword(e.target.value)}
-              placeholder="Master password"
+              placeholder={t('masterKey.unlock.placeholder')}
               disabled={isUnlocking}
               className="bg-stone-950 border-orange-500/30 focus:border-orange-400 text-white placeholder:text-stone-600"
               autoFocus
@@ -247,13 +249,13 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="rounded border-stone-600 bg-stone-800 text-orange-500 focus:ring-orange-500"
               />
-              Remember me (save password to browser)
+              {t('masterKey.unlock.rememberMe')}
             </label>
 
             {autoUnlockError && (
               <div className="flex items-center gap-2 text-amber-400/80 text-xs bg-amber-400/10 p-2 rounded">
                 <AlertCircle className="w-3 h-3 flex-shrink-0" />
-                <span>Auto-unlock failed: {autoUnlockError}</span>
+                <span>{t('masterKey.unlock.autoUnlockFailed', { error: autoUnlockError })}</span>
               </div>
             )}
 
@@ -274,12 +276,12 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
               ) : (
                 <Lock className="w-4 h-4 mr-2" />
               )}
-              Unlock
+              {t('masterKey.unlock.button')}
             </Button>
           </form>
 
           <p className="text-xs text-stone-500 mt-4 text-center">
-            Your password is stored securely in the browser and will unlock automatically next time.
+            {t('masterKey.unlock.securityNote')}
           </p>
         </div>
       </div>
