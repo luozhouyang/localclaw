@@ -44,11 +44,8 @@ export class CronScheduler {
    */
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.log('[CronScheduler] Already running');
       return;
     }
-
-    console.log('[CronScheduler] Starting...');
 
     // 初始化存储
     await cronStore.initialize();
@@ -66,8 +63,6 @@ export class CronScheduler {
 
     // 记录启动时间
     await cronStore.recordStartup();
-
-    console.log('[CronScheduler] Started');
   }
 
   /**
@@ -84,11 +79,9 @@ export class CronScheduler {
     this.isRunning = false;
 
     // 记录关闭时间（异步，不等待完成）
-    cronStore.recordShutdown().catch((err) => {
-      console.error('[CronScheduler] Failed to record shutdown:', err);
+    cronStore.recordShutdown().catch(() => {
+      // Ignore shutdown recording errors
     });
-
-    console.log('[CronScheduler] Stopped');
   }
 
   /**
@@ -133,7 +126,6 @@ export class CronScheduler {
     };
 
     await cronStore.saveJob(job);
-    console.log(`[CronScheduler] Job created: ${job.name} (${job.id})`);
 
     return job;
   }
@@ -159,7 +151,6 @@ export class CronScheduler {
     const updatedJob = { ...job, ...updates };
     await cronStore.saveJob(updatedJob);
 
-    console.log(`[CronScheduler] Job updated: ${updatedJob.name}`);
     return updatedJob;
   }
 
@@ -168,7 +159,6 @@ export class CronScheduler {
    */
   async removeJob(id: string): Promise<void> {
     await cronStore.deleteJob(id);
-    console.log(`[CronScheduler] Job removed: ${id}`);
   }
 
   /**
@@ -211,7 +201,6 @@ export class CronScheduler {
     const job = await cronStore.getJob(id);
     if (!job) throw new Error(`Job not found: ${id}`);
 
-    console.log(`[CronScheduler] Manually triggering job: ${job.name}`);
     await this.executeJob(job, false, true); // isRecovery=false, isManual=true
 
     // 更新下次执行时间
@@ -305,7 +294,6 @@ export class CronScheduler {
       // 跳过已达到最大执行次数的任务
       if (job.maxRuns && job.runCount >= job.maxRuns) {
         await this.updateJob(job.id, { status: 'completed', enabled: false });
-        console.log(`[CronScheduler] Job completed (max runs): ${job.name}`);
         continue;
       }
 
@@ -326,8 +314,8 @@ export class CronScheduler {
         // 计算下次执行时间
         try {
           updates.nextRunAt = CronParser.getNextRunTime(job.schedule);
-        } catch (error) {
-          console.error(`[CronScheduler] Failed to calculate next run for ${job.name}:`, error);
+        } catch {
+          // Ignore calculation errors
         }
 
         await this.updateJob(job.id, updates);
@@ -343,9 +331,6 @@ export class CronScheduler {
     isRecovery: boolean = false,
     isManual: boolean = false
   ): Promise<void> {
-    const triggerType = isManual ? 'manual' : isRecovery ? 'recovery' : 'scheduled';
-    console.log(`[CronScheduler] Executing job [${triggerType}]: ${job.name}`);
-
     const startTime = Date.now();
 
     try {
@@ -397,8 +382,6 @@ export class CronScheduler {
       }
 
     } catch (error) {
-      console.error(`[CronScheduler] Job execution failed: ${job.name}`, error);
-
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // 记录失败日志
@@ -422,9 +405,6 @@ export class CronScheduler {
       if (job.maxConsecutiveErrors && newErrorCount >= job.maxConsecutiveErrors) {
         updates.status = 'error';
         updates.enabled = false;
-        console.warn(
-          `[CronScheduler] Job paused due to consecutive errors: ${job.name} (${newErrorCount} errors)`
-        );
       }
 
       await this.updateJob(job.id, updates);
@@ -442,7 +422,6 @@ export class CronScheduler {
     const lastShutdown = await cronStore.getLastShutdownTime();
 
     if (!lastShutdown) {
-      console.log('[CronScheduler] No previous shutdown time found, skipping recovery');
       return;
     }
 
@@ -451,19 +430,8 @@ export class CronScheduler {
 
     // 检查是否在回溯窗口内
     if (now - lastShutdown > lookbackWindow) {
-      console.log(
-        `[CronScheduler] Last shutdown was too long ago (${new Date(
-          lastShutdown
-        ).toISOString()}), skipping recovery`
-      );
       return;
     }
-
-    console.log(
-      `[CronScheduler] Recovering missed tasks since ${new Date(
-        lastShutdown
-      ).toISOString()}`
-    );
 
     const jobs = await cronStore.listEnabledJobs();
 
@@ -476,10 +444,6 @@ export class CronScheduler {
       );
 
       if (missedCount <= 0) continue;
-
-      console.log(
-        `[CronScheduler] Job "${job.name}" missed ${missedCount} runs`
-      );
 
       await this.handleMissedRuns(
         job,
@@ -499,7 +463,6 @@ export class CronScheduler {
   ): Promise<void> {
     switch (strategy) {
       case 'skip':
-        console.log(`[CronScheduler] Skipping ${missedCount} missed runs for "${job.name}"`);
         // 只更新 lastRunAt，下次执行按正常计划
         await this.updateJob(job.id, {
           lastRunAt: Date.now(),
@@ -509,7 +472,6 @@ export class CronScheduler {
 
       case 'run-once':
         if (missedCount > 0) {
-          console.log(`[CronScheduler] Running once for missed tasks: "${job.name}"`);
           await this.executeJob(job, true);
           await this.updateJob(job.id, {
             lastRunAt: Date.now(),
@@ -521,9 +483,6 @@ export class CronScheduler {
 
       case 'run-all': {
         const runsToExecute = Math.min(missedCount, this.config.maxMissedRuns);
-        console.log(
-          `[CronScheduler] Running ${runsToExecute} missed tasks for "${job.name}"`
-        );
 
         for (let i = 0; i < runsToExecute; i++) {
           await this.executeJob(job, true);

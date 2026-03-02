@@ -114,13 +114,10 @@ export function usePersistentAgent(
         // Run agent loop
         let assistantMessage: UIMessage | null = null;
 
-        console.log('[sendMessage] Starting agentLoop with historyMessages:', historyMessages);
-
         for await (const event of agentLoop({
           provider: options.provider,
           messages: historyMessages,
         })) {
-          console.log('[sendMessage] Received event:', event.type, event);
           if (abortRef.current?.signal.aborted) {
             break;
           }
@@ -248,7 +245,6 @@ export function usePersistentAgent(
           }
         }
       } catch (err) {
-        console.error('[sendMessage] Error in agent loop:', err);
         setError(err as Error);
       } finally {
         setIsLoading(false);

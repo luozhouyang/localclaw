@@ -25,8 +25,6 @@ export async function* agentLoop(
 ): AsyncGenerator<AgentEvent> {
   const { provider, messages } = options;
 
-  console.log('[agentLoop] Starting with provider:', provider.baseURL, 'model:', provider.model, 'apiKey:', provider.apiKey ? '***' : 'EMPTY');
-  console.log('[agentLoop] Messages:', messages);
 
   // Create AI SDK provider
   const openai = createOpenAI({
@@ -38,8 +36,6 @@ export async function* agentLoop(
 
   while (true) {
     try {
-      console.log('[agentLoop] Calling streamText...');
-
       // Stream text with tools
       const result = streamText({
         model: openai.chat(provider.model),
@@ -47,15 +43,11 @@ export async function* agentLoop(
         tools: coreTools,
       });
 
-      console.log('[agentLoop] streamText returned, waiting for response...');
-
       // Wait for complete response - all properties are PromiseLike
       const [text, toolCalls] = await Promise.all([
         result.text,
         result.toolCalls,
       ]);
-
-      console.log('[agentLoop] Got response, text:', text?.slice(0, 100), 'toolCalls:', toolCalls);
 
       // text and toolCalls are already resolved values from Promise.all
       if (text) {

@@ -58,25 +58,19 @@ const MasterKeyContext = createContext<MasterKeyContextValue | null>(null)
 
 // Credential Management API helpers
 async function saveToCredential(password: string): Promise<boolean> {
-  console.log('[saveToCredential] Saving password to credential manager...')
   if (typeof navigator === 'undefined' || !('credentials' in navigator)) {
-    console.log('[saveToCredential] API not available')
     return false
   }
   try {
     const credential = new PasswordCredential({ id: CREDENTIAL_ID, password })
     await navigator.credentials.store(credential)
-    console.log('[saveToCredential] Password saved successfully!')
     return true
-  } catch (err) {
-    console.log('[saveToCredential] Error saving:', err)
+  } catch {
     return false
   }
 }
 
 async function getFromCredential(): Promise<{ password: string | null; error?: string }> {
-  console.log('[getFromCredential] Checking Credential Management API...')
-
   if (typeof navigator === 'undefined') {
     return { password: null, error: 'Navigator not available' }
   }
@@ -92,36 +86,27 @@ async function getFromCredential(): Promise<{ password: string | null; error?: s
 
   try {
     // First try with silent mediation (no user interaction)
-    console.log('[getFromCredential] Trying silent mediation...')
     const credential = await navigator.credentials.get({
       password: true,
       mediation: 'silent' as CredentialMediationRequirement,
     })
 
-    console.log('[getFromCredential] Silent result:', credential)
-
     if (credential?.type === 'password') {
       const pwd = credential as PasswordCredential
       if (pwd.id === CREDENTIAL_ID && pwd.password) {
-        console.log('[getFromCredential] Password found with silent!')
         return { password: pwd.password }
       }
     }
 
     // Silent failed, try with optional mediation (may show UI if needed)
-    console.log('[getFromCredential] Silent failed, trying optional mediation...')
     const credential2 = await navigator.credentials.get({
       password: true,
       mediation: 'optional' as CredentialMediationRequirement,
     })
 
-    console.log('[getFromCredential] Optional result:', credential2)
-
     if (credential2?.type === 'password') {
       const pwd = credential2 as PasswordCredential
-      console.log('[getFromCredential] Optional credential ID:', pwd.id)
       if (pwd.id === CREDENTIAL_ID && pwd.password) {
-        console.log('[getFromCredential] Password found with optional!')
         return { password: pwd.password }
       }
     }
@@ -129,7 +114,6 @@ async function getFromCredential(): Promise<{ password: string | null; error?: s
     return { password: null, error: 'No matching credential found in browser' }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err)
-    console.log('[getFromCredential] Error:', errorMsg)
     return { password: null, error: errorMsg }
   }
 }
@@ -182,25 +166,21 @@ export function MasterKeyProvider({ children }: { children: ReactNode }) {
       }
 
       // 4. Try credential manager auto-unlock
-      console.log('[MasterPassword] Trying auto-unlock from credential manager...')
       const { password: credentialPassword, error: credentialError } = await getFromCredential()
 
       if (credentialPassword) {
-        console.log('[MasterPassword] Credential found, attempting decrypt...')
         try {
           await decryptWithPassword(config.encryptedApiKey, credentialPassword)
-          console.log('[MasterPassword] Auto-unlock successful!')
           sessionPassword = credentialPassword
           setInternalStatus({ state: 'unlocked', password: credentialPassword })
           setIsLoading(false)
           return
-        } catch (err) {
-          console.log('[MasterPassword] Credential password decryption failed:', err)
+        } catch {
+          // Credential password decryption failed, continue to manual unlock
         }
       }
 
-      // 5. Need manual unlock - log why
-      console.log('[MasterPassword] Auto-unlock failed:', credentialError || 'Unknown reason')
+      // 5. Need manual unlock
       setInternalStatus({
         state: 'locked',
         hasProviderConfig: true,

@@ -78,8 +78,8 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
             size: stats.size || 0,
             mtime: stats.mtime ? stats.mtime.getTime() : Date.now(),
           });
-        } catch (err) {
-          console.warn(`[useFiles] Failed to stat ${fullPath}:`, err);
+        } catch {
+          // Ignore stat errors for individual files
         }
       }
 
@@ -94,7 +94,6 @@ export function useFiles(initialPath: string = '/home/user'): UseFilesReturn {
       setFiles(fileItems);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to list files');
-      console.error('[useFiles] Error listing files:', err);
     } finally {
       setIsLoading(false);
     }

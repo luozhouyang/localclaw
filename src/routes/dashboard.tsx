@@ -58,9 +58,8 @@ function Dashboard() {
         // Load task definitions dynamically (client-side only)
         await loadTaskDefinitions()
         await taskScheduler.initialize()
-        console.log('[Dashboard] Task system initialized')
       } catch (err) {
-        console.error('[Dashboard] Initialization failed:', err)
+        // Initialization error handled silently
       }
     }
     init()

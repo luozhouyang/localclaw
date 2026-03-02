@@ -22,8 +22,6 @@ export class TaskScheduler {
 
     taskExecutor.start();
     this.isInitialized = true;
-
-    console.log('[TaskScheduler] Initialized');
   }
 
   async schedule<Input>(
@@ -126,7 +124,6 @@ export class TaskScheduler {
           resumedAt: Date.now(),
         };
         await taskStore.saveTask(task);
-        console.log(`[TaskScheduler] Auto-resumed task ${task.id}`);
       } else {
         task.status = 'interrupted';
         task.error = {
@@ -137,8 +134,6 @@ export class TaskScheduler {
         await taskStore.saveTask(task);
       }
     }
-
-    console.log(`[TaskScheduler] Recovered ${running.length} interrupted tasks`);
   }
 
   on(event: 'started' | 'progress' | 'completed' | 'failed' | 'cancelled' | 'interrupted', callback: (task: TaskInstance) => void): () => void {

@@ -106,13 +106,12 @@ export async function loadInstalledSkills(): Promise<Skill[]> {
           installedAt: stat.mtime ? stat.mtime.getTime() : Date.now(),
           updatedAt: stat.mtime ? stat.mtime.getTime() : Date.now(),
         });
-      } catch (error) {
-        console.warn(`[Skills] Error loading skill ${dir}:`, error);
+      } catch {
+        // Ignore skill loading errors
       }
     }
   } catch {
     // Skills directory doesn't exist yet
-    console.log('[Skills] No skills directory found');
   }
 
   return skills;
@@ -190,7 +189,6 @@ export async function installSkillFromUrl(url: string, id?: string): Promise<Ski
 
     return skill;
   } catch (error) {
-    console.error('[Skills] Failed to install skill:', error);
     throw error;
   }
 }
@@ -225,7 +223,6 @@ export async function uninstallSkill(skillId: string): Promise<void> {
     registry.activeSkillIds = registry.activeSkillIds.filter(id => id !== skillId);
     await saveRegistry(registry);
   } catch (error) {
-    console.error(`[Skills] Failed to uninstall skill ${skillId}:`, error);
     throw error;
   }
 }

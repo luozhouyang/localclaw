@@ -8,7 +8,6 @@ class TaskRegistry {
       console.warn(`[TaskRegistry] Task type "${definition.type}" is being redefined`);
     }
     this.definitions.set(definition.type, definition);
-    console.log(`[TaskRegistry] Registered task type: ${definition.type}`);
   }
 
   get(type: string): TaskDefinition | undefined {

@@ -28,7 +28,7 @@ export class CronStore {
         // 忽略目录已存在的错误
         if (!err?.message?.includes('exists')) {
           // 其他错误继续抛出
-          console.warn(`[CronStore] Failed to create directory ${currentPath}:`, err);
+          throw err;
         }
       }
     }
