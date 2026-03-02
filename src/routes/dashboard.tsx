@@ -6,6 +6,7 @@ import { SkillsTab } from '@/components/dashboard/SkillsTab'
 import { TerminalTab } from '@/components/dashboard/TerminalTab'
 import { MemoryTab } from '@/components/dashboard/MemoryTab'
 import { CrontabTab } from '@/components/dashboard/CrontabTab'
+import { CodeTab } from '@/components/dashboard/CodeTab'
 import { ComingSoonTab } from '@/components/dashboard/ComingSoonTab'
 import { MasterKeyGuard } from '@/components/dashboard/MasterKeyGuard'
 import { MasterKeyProvider } from '@/contexts/master-key-context'
@@ -97,7 +98,7 @@ function DashboardContent() {
       case 'chat':
         return <ChatTab />
       case 'code':
-        return <ComingSoonTab />
+        return <CodeTab />
       case 'agents':
         return agentsSubTab === 'memory' ? <MemoryTab /> : <SkillsTab />
       case 'os':
