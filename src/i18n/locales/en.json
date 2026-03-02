@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "LOCALCLAW",
-    "subtitle": "AGENT v1.0",
     "status": {
       "online": "ONLINE",
       "offline": "OFFLINE"
@@ -10,6 +9,17 @@
   "language": {
     "en": "English",
     "zh": "中文"
+  },
+  "dateTime": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} min ago",
+    "minutesAgo_plural": "{{count}} mins ago",
+    "hoursAgo": "{{count}} hr ago",
+    "hoursAgo_plural": "{{count}} hrs ago",
+    "daysAgo": "{{count}} day ago",
+    "daysAgo_plural": "{{count}} days ago"
   },
   "tabs": {
     "chat": "CHAT",

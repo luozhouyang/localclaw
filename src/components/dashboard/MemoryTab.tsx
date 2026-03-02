@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatDateTimeFull } from '@/lib/i18n-utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -660,7 +661,7 @@ function ProjectMemoryView({ projectPath }: { projectPath: string }) {
                         {t('memory.project.status.active')}
                       </Badge>
                       <span className="text-xs text-stone-500">
-                        {new Date(decision.timestamp).toLocaleDateString()}
+                        {formatDateTimeFull(decision.timestamp)}
                       </span>
                     </div>
                   </div>

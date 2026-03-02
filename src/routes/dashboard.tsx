@@ -142,9 +142,6 @@ function DashboardContent() {
                 <h1 className="font-display text-xl font-bold text-white glow-orange-text">
                   {t('app.name')}
                 </h1>
-                <p className="text-xs text-orange-500/70 font-code tracking-wider">
-                  {t('app.subtitle')}
-                </p>
               </div>
             </div>
 
@@ -237,7 +234,7 @@ function DashboardContent() {
                     active={osSubTab === 'cron'}
                     onClick={() => setOsSubTab('cron')}
                     icon={<Clock className="w-3.5 h-3.5" />}
-                    label={t('tabs.cron', 'Cron')}
+                    label={t('tabs.crontab', 'Cron')}
                   />
                 </div>
               )}
@@ -277,6 +274,8 @@ interface TabButtonProps {
 function TabButton({ active, onClick, icon, label }: TabButtonProps) {
   return (
     <button
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={`
         flex items-center gap-2 px-4 py-2 rounded-md text-sm font-code
@@ -306,6 +305,8 @@ interface SubTabButtonProps {
 function SubTabButton({ active, onClick, icon, label }: SubTabButtonProps) {
   return (
     <button
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={`
         flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-code

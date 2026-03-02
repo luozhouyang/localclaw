@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Trash2, MessageSquare, Edit2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { threadManager } from '@/chat/thread-manager';
+import { formatDateTime } from '@/lib/i18n-utils';
 import type { Thread, Channel } from '@/chat/types';
 
 interface ThreadSidebarProps {
@@ -64,17 +65,6 @@ export function ThreadSidebar({
   const cancelEditing = () => {
     setEditingId(null);
     setEditTitle('');
-  };
-
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-
-    if (isToday) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -142,7 +132,7 @@ export function ThreadSidebar({
 
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-stone-500">
-                    {formatDate(thread.updatedAt)}
+                    {formatDateTime(thread.updatedAt)}
                   </span>
 
                   {/* Actions */}

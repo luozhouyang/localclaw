@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatDateTimeFull } from '@/lib/i18n-utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,18 +44,6 @@ function formatFileSize(bytes: number): string {
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
-/**
- * Format date in localized format
- */
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 /**
@@ -290,7 +279,7 @@ export function FilesTab() {
                     <p className="text-xs text-stone-500 font-code">
                       {file.type === 'directory'
                         ? t('files.folder')
-                        : `${formatFileSize(file.size)} • ${formatDate(file.mtime)}`}
+                        : `${formatFileSize(file.size)} • ${formatDateTimeFull(file.mtime)}`}
                     </p>
                   </div>
                 </div>

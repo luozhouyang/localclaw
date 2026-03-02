@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "LOCALCLAW",
-    "subtitle": "智能体 v1.0",
     "status": {
       "online": "在线",
       "offline": "离线"
@@ -11,15 +10,23 @@
     "en": "English",
     "zh": "中文"
   },
+  "dateTime": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "justNow": "刚刚",
+    "minutesAgo": "{{count}} 分钟前",
+    "hoursAgo": "{{count}} 小时前",
+    "daysAgo": "{{count}} 天前"
+  },
   "tabs": {
     "chat": "对话",
     "code": "代码",
     "agents": "智能体",
     "os": "系统",
-    "files": "文件",
-    "tasks": "任务",
+    "files": "文件系统",
+    "tasks": "异步任务",
     "memory": "记忆",
-    "crontab": "定时",
+    "crontab": "定时任务",
     "skills": "技能",
     "terminal": "终端",
     "settings": "设置",
