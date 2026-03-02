@@ -110,54 +110,54 @@ export function MasterPasswordDialog({
                     <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
                       <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                       <div className="text-amber-200 text-sm">
-                        <p className="font-medium mb-1">
+                        <div className="font-medium mb-1">
                           {getBrowserName()} 不支持自动密码保存
-                        </p>
-                        <p className="text-amber-200/70 text-xs">
+                        </div>
+                        <div className="text-amber-200/70 text-xs">
                           主密码将仅保存在当前页面内存中。刷新页面后需要重新输入。
                           建议使用 Chrome 或 Edge 浏览器获得更好体验。
-                        </p>
+                        </div>
                       </div>
                     </div>
-                    <p className="mt-3">
+                    <div className="mt-3">
                       请设置主密码用于加密您的 API Key：
-                    </p>
+                    </div>
                   </>
                 ) : (
                   // Full support (Chrome/Edge)
                   <>
-                    <p>
+                    <div>
                       为了保护您的 API Key，需要设置一个主密码。
                       此密码将用于加密您的敏感数据。
-                    </p>
+                    </div>
                     <div className="p-3 rounded-lg bg-stone-900/50 border border-stone-700/50 text-xs text-stone-500 space-y-1">
-                      <p className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                         <span className="text-green-400">✓</span>
                         您的密码将保存到浏览器密码管理器
-                      </p>
-                      <p className="flex items-center gap-2">
+                      </div>
+                      <div className="flex items-center gap-2">
                         <span className="text-green-400">✓</span>
                         API Key 使用 AES-256 加密后存储
-                      </p>
-                      <p className="flex items-center gap-2">
+                      </div>
+                      <div className="flex items-center gap-2">
                         <span className="text-green-400">✓</span>
                         密码不会发送到任何服务器
-                      </p>
-                      <p className="flex items-center gap-2">
+                      </div>
+                      <div className="flex items-center gap-2">
                         <span className="text-green-400">✓</span>
                         您可以在浏览器设置中管理保存的密码
-                      </p>
+                      </div>
                     </div>
                   </>
                 )}
               </>
             ) : (
               // Unlock mode
-              <p>
+              <div>
                 {isDegradedMode
                   ? '请输入主密码解锁 API Key。刷新页面后需要重新输入。'
                   : '请输入您的主密码以解密和访问 API Key。'}
-              </p>
+              </div>
             )}
           </DialogDescription>
         </DialogHeader>

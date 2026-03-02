@@ -253,18 +253,19 @@ export function LLMProviderSettings() {
         setValidationError(err instanceof Error ? err.message : 'Failed to setup master key');
         return;
       }
+      setShowMasterPasswordDialog(false);
+      // Proceed with save after setting up master key
+      await performSave(password);
     } else {
+      // Unlock mode - just unlock, don't try to save
       const success = await unlock(password);
       if (!success) {
         setValidationError('Invalid password');
         return;
       }
+      setShowMasterPasswordDialog(false);
+      // After unlock, the useEffect will trigger loadProvider to decrypt the API key
     }
-
-    setShowMasterPasswordDialog(false);
-
-    // Proceed with save, passing the password explicitly since state may not be updated yet
-    await performSave(password);
   };
 
   const handleDelete = async () => {

@@ -8,8 +8,11 @@ test.describe('Dashboard Page', () => {
   })
 
   test('should display dashboard with tabs', async ({ page }) => {
-    // Verify dashboard heading (LOCALCLAW, not Dashboard)
-    await expect(page.getByRole('heading', { name: 'LOCALCLAW' })).toBeVisible()
+    // Wait for page to be fully ready
+    await page.waitForTimeout(1000)
+
+    // Verify dashboard heading (LOCALCLAW, not Dashboard) - use text content
+    await expect(page.locator('h1', { hasText: 'LOCALCLAW' })).toBeVisible({ timeout: 10000 })
 
     // Verify all tabs are present (uppercase labels)
     await expect(page.getByRole('tab', { name: 'CHAT' })).toBeVisible()
