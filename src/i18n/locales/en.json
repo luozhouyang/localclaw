@@ -13,13 +13,17 @@
   },
   "tabs": {
     "chat": "CHAT",
+    "code": "CODE",
+    "agents": "AGENTS",
+    "os": "OS",
     "files": "FILES",
     "tasks": "TASKS",
     "memory": "MEMORY",
     "crontab": "CRON",
     "skills": "SKILLS",
     "terminal": "TERMINAL",
-    "settings": "CONFIG"
+    "settings": "SETTINGS",
+    "providerConfigs": "Provider configs"
   },
   "chat": {
     "title": "AGENT CHAT",
@@ -531,6 +535,9 @@
     "error": "Error",
     "success": "Success",
     "warning": "Warning",
-    "info": "Info"
+    "info": "Info",
+    "comingSoon": "Coming Soon",
+    "underDevelopment": "This feature is currently under development. Stay tuned for updates!",
+    "workInProgress": "Work in progress..."
   }
 }

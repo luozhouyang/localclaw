@@ -13,13 +13,17 @@
   },
   "tabs": {
     "chat": "对话",
+    "code": "代码",
+    "agents": "智能体",
+    "os": "系统",
     "files": "文件",
     "tasks": "任务",
     "memory": "记忆",
     "crontab": "定时",
     "skills": "技能",
     "terminal": "终端",
-    "settings": "设置"
+    "settings": "设置",
+    "providerConfigs": "提供商配置"
   },
   "chat": {
     "title": "智能体对话",
@@ -531,6 +535,9 @@
     "error": "错误",
     "success": "成功",
     "warning": "警告",
-    "info": "信息"
+    "info": "信息",
+    "comingSoon": "即将推出",
+    "underDevelopment": "此功能正在开发中。敬请期待！",
+    "workInProgress": "正在开发中..."
   }
 }
