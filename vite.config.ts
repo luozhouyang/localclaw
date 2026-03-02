@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import { devtools } from '@tanstack/devtools-vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
@@ -63,6 +64,24 @@ const config = defineConfig({
     },
     rollupOptions: {
       external: [],
+    },
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    deps: {
+      optimizer: {
+        web: {
+          include: ['vitest-canvas-mock'],
+        },
+      },
+    },
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        execArgv: ['--experimental-vm-modules'],
+      },
     },
   },
 })
