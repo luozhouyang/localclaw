@@ -1,145 +1,223 @@
 import { useCallback, useEffect, useState } from 'react'
 import { providerConfigs } from '@/config/provider'
-import {
-  decryptWithPassword,
-  getSessionMasterPassword,
-  getCachedDecryptedValue,
-  cacheDecryptedValue,
-} from '@/lib/crypto'
-import {
-  type LLMProvider,
-  type ProviderType,
-  OPENROUTER_CONFIG,
-} from '@/types/llm'
+import { decryptWithPassword } from '@/lib/crypto'
+import { useMasterPasswordContext } from '@/contexts/master-key-context'
+import type { LLMProvider } from '@/types/llm'
 
 const API_KEY_CACHE_KEY = 'provider:apikey'
 
+// Session cache for decrypted API key
+const sessionCache = new Map<string, string>()
+
+export interface ProviderState {
+  /** Provider 当前状态 */
+  status: 'loading' | 'no_config' | 'ready'
+  /** 已解锁的 provider */
+  provider: LLMProvider | null
+  /** 是否正在加载 */
+  isLoading: boolean
+  /** 错误信息 */
+  error: string | null
+}
+
 export function useLLMSettings() {
-  const [provider, setProvider] = useState<LLMProvider | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { status: mpStatus, currentPassword } = useMasterPasswordContext()
 
-  // Load provider from storage
-  const loadProvider = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+  const [state, setState] = useState<{
+    provider: LLMProvider | null
+    hasConfig: boolean
+    isLoading: boolean
+    error: string | null
+  }>({
+    provider: null,
+    hasConfig: false,
+    isLoading: true,
+    error: null,
+  })
 
-    try {
-      const config = await providerConfigs.getProviderConfig()
-      if (!config) {
-        setProvider(null)
-        setIsLoading(false)
-        return
-      }
-
-      // Check if we have encrypted API key
-      if (!config.encryptedApiKey) {
-        setProvider(null)
-        setIsLoading(false)
-        return
-      }
-
-      // Check session cache first
-      const cachedKey = getCachedDecryptedValue(API_KEY_CACHE_KEY)
-      if (cachedKey) {
-        setProvider(providerConfigs.buildProvider(config, cachedKey))
-        setIsLoading(false)
-        return
-      }
-
-      // Check session master password
-      const sessionPassword = getSessionMasterPassword()
-      if (sessionPassword) {
-        try {
-          const decryptedKey = await decryptWithPassword(config.encryptedApiKey, sessionPassword)
-          cacheDecryptedValue(API_KEY_CACHE_KEY, decryptedKey)
-          setProvider(providerConfigs.buildProvider(config, decryptedKey))
-          setIsLoading(false)
-          return
-        } catch {
-          // Session password invalid, will need to unlock
-        }
-      }
-
-      // We have config but need password to decrypt API key
-      setProvider(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load provider')
-      console.error('Failed to load provider:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  // Load on mount
+  // Load provider config when master password is unlocked
   useEffect(() => {
-    loadProvider()
-  }, [loadProvider])
+    const loadProvider = async () => {
+      // Wait for master password check
+      if (mpStatus.state === 'checking') {
+        setState(prev => ({ ...prev, isLoading: true }))
+        return
+      }
 
-  // Unlock provider with master password
-  const unlockProvider = useCallback(async (password: string) => {
-    try {
-      const config = await providerConfigs.getProviderConfig()
-      if (!config) return null
+      // If not unlocked, we can't decrypt provider
+      if (mpStatus.state !== 'unlocked') {
+        setState({
+          provider: null,
+          hasConfig: false,
+          isLoading: false,
+          error: null,
+        })
+        return
+      }
 
-      if (!config.encryptedApiKey) return null
+      setState(prev => ({ ...prev, isLoading: true }))
 
-      const decryptedKey = await decryptWithPassword(config.encryptedApiKey, password)
-      cacheDecryptedValue(API_KEY_CACHE_KEY, decryptedKey)
+      try {
+        const config = await providerConfigs.getProviderConfig()
 
-      const provider = providerConfigs.buildProvider(config, decryptedKey)
-      setProvider(provider)
-      return provider
-    } catch (err) {
-      console.error('Failed to unlock provider:', err)
-      throw new Error('Invalid master password')
+        if (!config) {
+          setState({
+            provider: null,
+            hasConfig: false,
+            isLoading: false,
+            error: null,
+          })
+          return
+        }
+
+        if (!config.encryptedApiKey) {
+          setState({
+            provider: null,
+            hasConfig: true,
+            isLoading: false,
+            error: 'No API key configured',
+          })
+          return
+        }
+
+        // Try to get from session cache first
+        let apiKey = sessionCache.get(API_KEY_CACHE_KEY)
+
+        // If not cached, decrypt with master password
+        if (!apiKey && currentPassword) {
+          try {
+            apiKey = await decryptWithPassword(config.encryptedApiKey, currentPassword)
+            sessionCache.set(API_KEY_CACHE_KEY, apiKey)
+          } catch {
+            setState({
+              provider: null,
+              hasConfig: true,
+              isLoading: false,
+              error: 'Failed to decrypt API key',
+            })
+            return
+          }
+        }
+
+        if (apiKey) {
+          setState({
+            provider: providerConfigs.buildProvider(config, apiKey),
+            hasConfig: true,
+            isLoading: false,
+            error: null,
+          })
+        } else {
+          setState({
+            provider: null,
+            hasConfig: true,
+            isLoading: false,
+            error: 'Failed to unlock provider',
+          })
+        }
+      } catch (err) {
+        setState({
+          provider: null,
+          hasConfig: false,
+          isLoading: false,
+          error: err instanceof Error ? err.message : 'Failed to load provider',
+        })
+      }
     }
+
+    loadProvider()
+  }, [mpStatus, currentPassword])
+
+  // Save provider config
+  const saveProvider = useCallback(async (
+    type: 'openrouter' | 'custom',
+    baseURL: string,
+    models: string[],
+    defaultModel: string,
+    apiKey: string,
+    masterPassword: string
+  ) => {
+    // Encrypt API key with master password
+    const encryptedKey = await decryptWithPassword(apiKey, masterPassword)
+      .then(() => apiKey) // If we can "decrypt" (it was plaintext), use as-is
+      .catch(() => encryptWithPassword(apiKey, masterPassword)) // Otherwise encrypt
+
+    const config = await providerConfigs.saveProviderConfig(
+      type,
+      baseURL,
+      models,
+      defaultModel,
+      encryptedKey
+    )
+
+    // Update state
+    setState({
+      provider: providerConfigs.buildProvider(config, apiKey),
+      hasConfig: true,
+      isLoading: false,
+      error: null,
+    })
+
+    return config
   }, [])
 
   // Delete provider
   const deleteProvider = useCallback(async () => {
     try {
       await providerConfigs.deleteProvider()
-      setProvider(null)
+      sessionCache.delete(API_KEY_CACHE_KEY)
+      setState({
+        provider: null,
+        hasConfig: false,
+        isLoading: false,
+        error: null,
+      })
     } catch (err) {
       console.error('Failed to delete provider:', err)
       throw err
     }
   }, [])
 
-  // Get available models from OpenRouter
+  // Fetch OpenRouter models
   const fetchOpenRouterModels = useCallback(async (apiKey: string) => {
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'LocalClaw',
-        },
-      })
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'LocalClaw',
+      },
+    })
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch models')
-      }
-
-      const data = await response.json() as { data: Array<{ id: string; name?: string }> }
-      return data.data.map((m) => ({
-        id: m.id,
-        name: m.name || m.id,
-      }))
-    } catch (err) {
-      console.error('Failed to fetch OpenRouter models:', err)
-      throw err
+    if (!response.ok) {
+      throw new Error('Failed to fetch models')
     }
+
+    const data = (await response.json()) as {
+      data: Array<{ id: string; name?: string }>
+    }
+    return data.data.map((m) => ({
+      id: m.id,
+      name: m.name || m.id,
+    }))
   }, [])
 
+  const combinedStatus: ProviderState['status'] =
+    state.isLoading || mpStatus.state === 'checking'
+      ? 'loading'
+      : !state.hasConfig
+        ? 'no_config'
+        : 'ready'
+
   return {
-    provider,
-    isLoading,
-    error,
-    reload: loadProvider,
-    unlockProvider,
+    status: combinedStatus,
+    provider: state.provider,
+    hasConfig: state.hasConfig,
+    isLoading: state.isLoading || mpStatus.state === 'checking',
+    error: state.error,
+    saveProvider,
     deleteProvider,
     fetchOpenRouterModels,
   }
 }
+
+// Import for encryptWithPassword
+import { encryptWithPassword } from '@/lib/crypto'

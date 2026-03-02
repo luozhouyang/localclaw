@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bot, Send, User, AlertCircle, Loader2, Wrench, CheckCircle, XCircle } from "lucide-react";
+import { Bot, Send, User, Loader2, Wrench, CheckCircle, XCircle } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
 import { useLLMSettings } from "@/hooks/use-llm-settings";
 import { usePersistentAgent } from "@/hooks/use-persistent-agent";
@@ -8,7 +8,8 @@ import { ThreadSidebar } from "@/components/chat/ThreadSidebar";
 import type { UIMessage, DynamicToolUIPart } from "ai";
 
 export function ChatTab() {
-  const { provider: activeProvider } = useLLMSettings();
+  const { provider: activeProvider, isLoading: isProviderLoading } = useLLMSettings();
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
@@ -18,9 +19,6 @@ export function ChatTab() {
     apiKey: activeProvider.apiKey,
     model: activeProvider.defaultModel,
   } : null;
-
-  console.log('[ChatTab] activeProvider:', activeProvider ? { ...activeProvider, apiKey: activeProvider.apiKey ? '***' : 'EMPTY' } : null);
-  console.log('[ChatTab] provider:', provider ? { ...provider, apiKey: provider.apiKey ? '***' : 'EMPTY' } : null);
 
   const {
     messages,
@@ -70,7 +68,21 @@ export function ChatTab() {
     setCurrentThreadId(id);
   };
 
-  const isReady = activeProvider && activeProvider.apiKey;
+  // Ready when provider is loaded and unlocked
+  const isReady = !!provider && !isProviderLoading;
+
+  // Header status text
+  const getHeaderStatus = () => {
+    if (isProviderLoading) {
+      return { text: 'Loading...', color: 'text-stone-500' };
+    }
+    if (activeProvider) {
+      return { text: `${activeProvider.name} • ${activeProvider.defaultModel}`, color: 'text-orange-400/70' };
+    }
+    return { text: 'Configuring...', color: 'text-stone-500' };
+  };
+
+  const headerStatus = getHeaderStatus();
 
   const renderMessage = (message: UIMessage, index: number) => {
     const isUser = message.role === 'user';
@@ -140,15 +152,9 @@ export function ChatTab() {
               <h2 className="font-display text-lg font-bold text-white">
                 {currentThread?.title || 'AGENT CHAT'}
               </h2>
-              {activeProvider ? (
-                <p className="text-xs text-orange-400/70 font-code">
-                  {activeProvider.name} • {activeProvider.model}
-                </p>
-              ) : (
-                <p className="text-xs text-stone-500 font-code">
-                  No provider configured
-                </p>
-              )}
+              <p className={`text-xs font-code ${headerStatus.color}`}>
+                {headerStatus.text}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -171,19 +177,8 @@ export function ChatTab() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 custom-scrollbar">
-          {!isReady && (
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-orange-500/10 border border-orange-500/30">
-              <AlertCircle className="w-5 h-5 text-orange-400 flex-shrink-0" />
-              <div className="text-sm text-orange-400">
-                <p className="font-medium">No Active Provider</p>
-                <p className="text-xs text-orange-400/70 mt-1">
-                  Go to Settings &gt; Config to set up and activate an LLM provider.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {messages.length === 0 && isReady && (
+          {/* Empty State */}
+          {messages.length === 0 && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center text-stone-500">
                 <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -223,11 +218,13 @@ export function ChatTab() {
           <form onSubmit={handleSubmit} className="flex gap-2">
             <Input
               placeholder={
-                isReady
-                  ? currentThreadId
-                    ? "Type your message..."
-                    : "Create a new chat to start..."
-                  : "Configure a provider to start chatting..."
+                isProviderLoading
+                  ? "Loading provider..."
+                  : !activeProvider
+                    ? "Configuring provider..."
+                    : currentThreadId
+                      ? "Type your message..."
+                      : "Create a new chat to start..."
               }
               value={input}
               onChange={(e) => setInput(e.target.value)}

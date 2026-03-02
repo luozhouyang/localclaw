@@ -8,6 +8,8 @@ import { TerminalTab } from '@/components/dashboard/TerminalTab'
 import { SettingsTab } from '@/components/dashboard/SettingsTab'
 import { MemoryTab } from '@/components/dashboard/MemoryTab'
 import { CrontabTab } from '@/components/dashboard/CrontabTab'
+import { MasterKeyGuard } from '@/components/dashboard/MasterKeyGuard'
+import { MasterKeyProvider } from '@/contexts/master-key-context'
 import { MessageSquare, FolderOpen, CheckSquare, Puzzle, Settings, Terminal, Brain, Clock } from 'lucide-react'
 import { useEffect } from 'react'
 import { taskScheduler } from '@/tasks'
@@ -52,6 +54,16 @@ function Dashboard() {
     init()
   }, [])
 
+  return (
+    <MasterKeyProvider>
+      <MasterKeyGuard>
+        <DashboardContent />
+      </MasterKeyGuard>
+    </MasterKeyProvider>
+  )
+}
+
+function DashboardContent() {
   return (
     <div className="min-h-screen bg-[#0D0D0D]">
       {/* Header with glass effect */}
