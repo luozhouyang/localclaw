@@ -149,22 +149,22 @@ export function MasterKeyProvider({ children }: { children: ReactNode }) {
           )
         ])
 
+        // No provider configured at all - user needs to set up
         if (!config) {
-          // No provider configured at all - user needs to set up
           setInternalStatus({ state: 'not_set' })
           setIsLoading(false)
           return
         }
 
-        // 2. Check if we have encrypted API key
-        if (!config.encryptedApiKey) {
+        // Check if we have encrypted API key
+        if (!config.encryptedApiKey || config.encryptedApiKey.trim() === '') {
           // Provider exists but no API key - needs setup
           setInternalStatus({ state: 'not_set' })
           setIsLoading(false)
           return
         }
 
-        // 3. Try session password first
+        // Try session password first (from previous page navigation)
         if (sessionPassword) {
           try {
             await decryptWithPassword(config.encryptedApiKey, sessionPassword)
@@ -176,7 +176,7 @@ export function MasterKeyProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // 4. Try credential manager auto-unlock
+        // Try credential manager auto-unlock
         const { password: credentialPassword, error: credentialError } = await getFromCredential()
 
         if (credentialPassword) {
@@ -191,11 +191,18 @@ export function MasterKeyProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // 5. Need manual unlock
+        // Need manual unlock - only if credential API failed for a reason other than "not available"
+        // If credential API is not available (e.g., not in secure context), go directly to manual unlock
+        // without showing the error
+        const shouldShowCredentialError = credentialError &&
+          !credentialError.includes('Credential Management API not supported') &&
+          !credentialError.includes('Navigator not available') &&
+          !credentialError.includes('Not in secure context')
+
         setInternalStatus({
           state: 'locked',
           hasProviderConfig: true,
-          lastError: credentialError
+          lastError: shouldShowCredentialError ? credentialError : undefined
         })
         setIsLoading(false)
       } catch (err) {

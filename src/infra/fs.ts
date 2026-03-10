@@ -278,7 +278,9 @@ export class LocalClawKV {
   constructor(private agentFs: AgentFSInstance) {}
 
   async get<T>(key: string): Promise<T | null> {
-    return this.agentFs.kv.get(key) as Promise<T | null>;
+    const value = await this.agentFs.kv.get(key);
+    // Return null for undefined or undefined-like values
+    return (value === undefined || value === null) ? null : (value as T);
   }
 
   async set<T>(key: string, value: T): Promise<void> {

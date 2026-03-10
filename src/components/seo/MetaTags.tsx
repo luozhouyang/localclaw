@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
+import { SITE_URL } from '@/config/site'
 
 interface MetaTagsProps {
   title?: string
@@ -23,7 +24,8 @@ export function MetaTags({
   const siteTitle = title || t('landing.title.line1') + ' ' + t('landing.title.line2')
   const siteDescription =
     description || t('landing.subtitle')
-  const siteUrl = canonicalUrl || window.location.origin
+  // Use canonicalUrl or default to site constant (SSR-compatible)
+  const siteUrl = canonicalUrl || SITE_URL
   const currentLang = i18n.language || 'en'
 
   // Structured data for LocalClaw (JSON-LD)

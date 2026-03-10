@@ -179,10 +179,13 @@ export function useLLMSettings() {
 
   // Fetch OpenRouter models
   const fetchOpenRouterModels = useCallback(async (apiKey: string) => {
+    // Get origin safely (SSR-compatible)
+    const origin = typeof window !== 'undefined' ? window.location.origin : SITE_URL
+
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        'HTTP-Referer': window.location.origin,
+        'HTTP-Referer': origin,
         'X-Title': 'LocalClaw',
       },
     })
@@ -221,3 +224,4 @@ export function useLLMSettings() {
 
 // Import for encryptWithPassword
 import { encryptWithPassword } from '@/lib/crypto'
+import { SITE_URL } from '@/config/site'

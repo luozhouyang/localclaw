@@ -26,7 +26,12 @@ export const providerConfigs = {
    */
   async getProviderConfig(): Promise<StoredProviderConfig | null> {
     const kv = await getKV();
-    return kv.get<StoredProviderConfig>(PROVIDER_CONFIG_KEY);
+    const config = await kv.get<StoredProviderConfig>(PROVIDER_CONFIG_KEY);
+    // Return null if config is undefined, null, or an empty object
+    if (!config || typeof config !== 'object' || Object.keys(config).length === 0) {
+      return null;
+    }
+    return config as StoredProviderConfig;
   },
 
   /**
