@@ -18,9 +18,41 @@ import {
   ShieldCheck,
   KeyRound,
   ServerOff,
+  Github,
 } from 'lucide-react'
+import { MetaTags, GeoMetaTags } from '@/components/seo'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
-export const Route = createFileRoute('/')({ component: LandingPage })
+export const Route = createFileRoute('/')({
+  component: LandingPage,
+  head: () => ({
+    meta: [
+      {
+        title: 'LocalClaw - Browser-based AI Agent Terminal',
+      },
+      {
+        name: 'description',
+        content: 'LocalClaw is a browser-based AI agent terminal that runs entirely in your browser. Built with TanStack Router, Cloudflare Workers, and Vercel AI SDK. Privacy-focused with encrypted local storage.',
+      },
+      {
+        name: 'keywords',
+        content: 'LocalClaw, AI Agent, Claude, Vercel AI SDK, Browser AI, OPFS, Privacy, Open Source, TanStack Router, Cloudflare Workers',
+      },
+      {
+        property: 'og:title',
+        content: 'LocalClaw - Browser-based AI Agent Terminal',
+      },
+      {
+        property: 'og:description',
+        content: 'A privacy-focused AI agent terminal that runs entirely in your browser',
+      },
+      {
+        property: 'og:type',
+        content: 'website',
+      },
+    ],
+  }),
+})
 
 /**
  * LandingPage component
@@ -36,14 +68,14 @@ function LandingPage() {
       description: t('landing.features.aiAgent.description'),
     },
     {
-      icon: <Terminal className="w-10 h-10 text-amber-400" />,
-      title: t('landing.features.terminal.title'),
-      description: t('landing.features.terminal.description'),
-    },
-    {
-      icon: <Cpu className="w-10 h-10 text-coral" />,
+      icon: <Database className="w-10 h-10 text-amber-400" />,
       title: t('landing.features.filesystem.title'),
       description: t('landing.features.filesystem.description'),
+    },
+    {
+      icon: <Terminal className="w-10 h-10 text-coral" />,
+      title: t('landing.features.bash.title'),
+      description: t('landing.features.bash.description'),
     },
     {
       icon: <Code2 className="w-10 h-10 text-orange-500" />,
@@ -110,6 +142,10 @@ function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] overflow-hidden">
+      {/* SEO Components */}
+      <MetaTags />
+      <GeoMetaTags />
+
       {/* Animated background gradient */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5" />
@@ -130,13 +166,25 @@ function LandingPage() {
                 {t('app.name')}
               </span>
             </div>
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 rounded-lg transition-all duration-300 hover:glow-orange font-code text-sm group"
-            >
-              <span>{t('landing.launch')}</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                to="/dashboard"
+                className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/50 rounded-lg transition-all duration-300 hover:glow-orange font-code text-sm group"
+              >
+                <span>{t('landing.launch')}</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <LanguageSwitcher />
+              <a
+                href="https://github.com/luozhouyang/localclaw"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 text-stone-400 hover:text-white transition-all duration-300 font-code text-sm group"
+                aria-label="View LocalClaw on GitHub"
+              >
+                <Github className="w-5 h-5" />
+              </a>
+            </div>
           </div>
         </div>
       </header>
@@ -179,7 +227,7 @@ function LandingPage() {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <a
-              href="https://github.com"
+              href="https://github.com/luozhouyang/localclaw"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-8 py-4 glass hover:glass-strong text-orange-400 border border-orange-500/30 rounded-lg transition-all duration-300 text-lg"
@@ -282,44 +330,6 @@ function LandingPage() {
                 </p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Terminal Preview Section */}
-      <section className="relative z-10 py-20 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="glass-strong rounded-xl overflow-hidden border border-orange-500/30 glow-orange">
-            {/* Terminal header */}
-            <div className="flex items-center gap-2 px-4 py-3 bg-stone-900/80 border-b border-orange-500/20">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500" />
-              <div className="w-3 h-3 rounded-full bg-amber-400" />
-              <span className="ml-4 text-xs text-stone-500 font-code">{t('landing.terminalPreview.title')}</span>
-            </div>
-            {/* Terminal content */}
-            <div className="p-6 font-code text-sm space-y-2 bg-stone-950/50">
-              <div className="flex items-center gap-2">
-                <span className="text-orange-400">➜</span>
-                <span className="text-stone-300">~</span>
-                <span className="text-stone-500">localclaw init</span>
-              </div>
-              <div className="text-amber-400">
-                ✓ {t('landing.terminalPreview.initialized')}
-              </div>
-              <div className="text-stone-400">
-                ✓ {t('landing.terminalPreview.connected')}
-              </div>
-              <div className="text-stone-400">
-                ✓ {t('landing.terminalPreview.mounted')}
-              </div>
-              <div className="flex items-center gap-2 mt-4">
-                <span className="text-orange-400">➜</span>
-                <span className="text-stone-300">~</span>
-                <span className="text-stone-500">_</span>
-                <span className="w-2 h-4 bg-orange-400 animate-pulse" />
-              </div>
-            </div>
           </div>
         </div>
       </section>

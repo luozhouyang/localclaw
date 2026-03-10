@@ -552,13 +552,13 @@
         "title": "AI-Powered Agent",
         "description": "Built on Vercel AI SDK with advanced language model capabilities. Experience natural, context-aware conversations."
       },
-      "terminal": {
-        "title": "Browser-Based Terminal",
-        "description": "Full terminal emulation in the browser via OPFS and bash-tool integration. Execute commands seamlessly."
-      },
       "filesystem": {
-        "title": "Local File System",
-        "description": "Direct access to your local files through AgentFS and OPFS. Read, write, and manage files with AI assistance."
+        "title": "Native Filesystem",
+        "description": "Direct access to your local files through AgentFS and OPFS. No containers or VMs needed - runs directly in your browser."
+      },
+      "bash": {
+        "title": "Bash Shell Access",
+        "description": "Full bash terminal emulation via bash-tool integration. Execute shell commands locally - no containers or VMs required."
       },
       "developer": {
         "title": "Developer First",

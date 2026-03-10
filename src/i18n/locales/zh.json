@@ -549,13 +549,13 @@
         "title": "AI 智能体",
         "description": "基于 Vercel AI SDK 构建，具备先进的语言模型能力。体验自然、上下文感知的对话。"
       },
-      "terminal": {
-        "title": "浏览器终端",
-        "description": "通过 OPFS 和 bash-tool 集成，在浏览器中实现完整的终端模拟。无缝执行命令。"
-      },
       "filesystem": {
-        "title": "本地文件系统",
-        "description": "通过 AgentFS 和 OPFS 直接访问本地文件。在 AI 辅助下读取、写入和管理文件。"
+        "title": "原生文件系统",
+        "description": "通过 AgentFS 和 OPFS 直接访问本地文件。无需容器或虚拟机 - 直接在浏览器中运行。"
+      },
+      "bash": {
+        "title": "Bash Shell 访问",
+        "description": "通过 bash-tool 集成实现完整的 bash 终端模拟。在本地执行 shell 命令 - 无需容器或虚拟机。"
       },
       "developer": {
         "title": "开发者优先",
