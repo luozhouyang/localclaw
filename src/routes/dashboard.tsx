@@ -90,6 +90,18 @@ function DashboardContent() {
   const [osSubTab, setOsSubTab] = useState('files')
   const [settingsSubTab, setSettingsSubTab] = useState('providers')
 
+  // Check URL hash on mount to switch to settings tab if needed
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash
+      if (hash === '#settings') {
+        setPrimaryTab('settings')
+        // Clear the hash
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+    }
+  }, [])
+
   // Render content based on primary tab and sub-tab
   const renderContent = () => {
     switch (primaryTab) {

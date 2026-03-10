@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { decryptWithPassword } from '@/lib/crypto'
 import { providerConfigs } from '@/config/provider'
+import { getKV } from '@/infra/fs'
 
 export const CREDENTIAL_ID = 'localclaw-master-password'
 
@@ -141,17 +142,28 @@ export function MasterKeyProvider({ children }: { children: ReactNode }) {
       try {
         setIsLoading(true)
 
-        // Use Promise.race with timeout wrapper
+        // First check if master key has been initialized (even without provider config)
+        const kv = await getKV()
+        const masterKeyInitialized = await kv.get('master-key:initialized')
+
+        // Use Promise.race with timeout wrapper - increased timeout for slower connections
         const config = await Promise.race([
           providerConfigs.getProviderConfig(),
           new Promise<null>((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout checking provider config')), 5000)
+            setTimeout(() => reject(new Error('Timeout checking provider config')), 10000)
           )
         ])
 
-        // No provider configured at all - user needs to set up
+        // No provider configured at all
         if (!config) {
-          setInternalStatus({ state: 'not_set' })
+          // If master key was initialized but no provider config, user needs to configure provider
+          if (masterKeyInitialized) {
+            // Master key exists but no provider - go to locked state to unlock first
+            setInternalStatus({ state: 'locked', hasProviderConfig: false })
+          } else {
+            // True first-time user
+            setInternalStatus({ state: 'not_set' })
+          }
           setIsLoading(false)
           return
         }
@@ -206,14 +218,28 @@ export function MasterKeyProvider({ children }: { children: ReactNode }) {
         })
         setIsLoading(false)
       } catch (err) {
-        // On timeout or other errors, fall back to locked state (not not_set)
-        // This preserves existing data and asks user to unlock
+        // On timeout or other errors, check if config actually exists
+        // If config check itself failed, assume no config (first-time user)
         console.error('Error checking master key state:', err)
-        setInternalStatus({
-          state: 'locked',
-          hasProviderConfig: true,
-          lastError: err instanceof Error ? err.message : 'Unknown error'
-        })
+
+        // Try to verify if config exists independently
+        try {
+          const configExists = await providerConfigs.getProviderConfig().then(c => !!c)
+          if (configExists) {
+            // Config exists but something else failed - go to locked
+            setInternalStatus({
+              state: 'locked',
+              hasProviderConfig: true,
+              lastError: err instanceof Error ? err.message : 'Unknown error'
+            })
+          } else {
+            // No config - first-time user
+            setInternalStatus({ state: 'not_set' })
+          }
+        } catch {
+          // Double failure - assume no config
+          setInternalStatus({ state: 'not_set' })
+        }
         setIsLoading(false)
       }
     }
@@ -239,6 +265,11 @@ export function MasterKeyProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Save a marker to KV to indicate master key has been set
+      // This prevents the app from thinking it's a first-time user on refresh
+      const kv = await getKV()
+      await kv.set('master-key:initialized', true)
+
       // Save to credential manager for auto-unlock next time
       await saveToCredential(password)
       sessionPassword = password
@@ -260,10 +291,18 @@ export function MasterKeyProvider({ children }: { children: ReactNode }) {
 
     try {
       const config = await providerConfigs.getProviderConfig()
+
+      // If no provider config, just save the password and unlock
+      // User will need to configure provider after unlocking
       if (!config?.encryptedApiKey) {
-        setError('No provider configured')
+        // No provider config - just save password and unlock
+        if (saveToBrowser) {
+          await saveToCredential(password)
+        }
+        sessionPassword = password
+        setInternalStatus({ state: 'unlocked', password })
         setIsLoading(false)
-        return false
+        return true
       }
 
       // Validate password by decrypting

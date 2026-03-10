@@ -78,7 +78,15 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
 
     const success = await unlock(unlockPassword.trim(), rememberMe);
 
-    if (!success) {
+    if (success) {
+      // Check if provider is configured after successful unlock
+      const config = await providerConfigs.getProviderConfig();
+      if (!config) {
+        // No provider config - redirect to dashboard with settings tab
+        window.location.href = '/dashboard#settings';
+        return;
+      }
+    } else {
       setUnlockError(t('masterKey.errors.invalidPassword'));
     }
 
@@ -204,7 +212,9 @@ export function MasterKeyGuard({ children }: MasterKeyGuardProps) {
                 </p>
               </div>
               <Button
-                onClick={() => window.location.href = '/settings/config'}
+                onClick={() => {
+                  window.location.href = '/dashboard#settings'
+                }}
                 className="bg-orange-500 hover:bg-orange-400 text-white px-8"
               >
                 {t('masterKey.configured.configure')}
