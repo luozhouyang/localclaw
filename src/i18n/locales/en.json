@@ -483,6 +483,68 @@
     "launch": "LAUNCH",
     "startAgent": "START AGENT",
     "viewSource": "VIEW SOURCE",
+    "uniqueSection": {
+      "badge": "WHY LOCALCLAW",
+      "title": "BUILT DIFFERENT",
+      "subtitle": "Not just another AI wrapper. LocalClaw reimagines how AI agents should work."
+    },
+    "unique": {
+      "browserOnly": {
+        "title": "Browser-Only",
+        "description": "No desktop app to install. Works instantly in any modern browser with zero setup."
+      },
+      "opfs": {
+        "title": "OPFS Storage",
+        "description": "Origin Private File System provides fast, private, persistent storage scoped to your origin."
+      },
+      "edge": {
+        "title": "Edge Computing",
+        "description": "Deployed on Cloudflare Workers globally for sub-50ms latency from anywhere."
+      },
+      "opensource": {
+        "title": "Fully Open Source",
+        "description": "Transparent codebase you can audit, fork, and contribute to. No hidden agendas."
+      }
+    },
+    "privacySection": {
+      "badge": "YOUR DATA STAYS YOURS",
+      "title": "PRIVACY FIRST",
+      "subtitle": "Built from the ground up to protect your data. No compromises, no backdoors."
+    },
+    "privacy": {
+      "noServer": {
+        "title": "No Server Storage",
+        "description": "Your files never leave your browser. All processing happens locally on your device."
+      },
+      "encrypted": {
+        "title": "Client-Side Encryption",
+        "description": "API keys encrypted with your master password before storage using industry-standard algorithms."
+      },
+      "noTracking": {
+        "title": "No Analytics Tracking",
+        "description": "We don't track your usage, collect telemetry, or sell your data to third parties."
+      },
+      "localKeys": {
+        "title": "Local Key Storage",
+        "description": "Your API keys stored only in your browser's encrypted storage. We never see them."
+      }
+    },
+    "securityPromise": {
+      "title": "Our Security Promise",
+      "description": "Three commitments written into our code, not just our marketing.",
+      "noLogs": {
+        "title": "No Activity Logs",
+        "description": "We don't log your conversations or file operations."
+      },
+      "clientEncryption": {
+        "title": "Client Encryption",
+        "description": "Sensitive data encrypted before it leaves your browser."
+      },
+      "openSource": {
+        "title": "Auditable Code",
+        "description": "Open source means anyone can verify our security claims."
+      }
+    },
     "features": {
       "title": "POWERFUL CAPABILITIES",
       "subtitle": "Everything you need for AI-powered development",

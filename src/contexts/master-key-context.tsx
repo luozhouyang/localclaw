@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, ty
 import { decryptWithPassword } from '@/lib/crypto'
 import { providerConfigs } from '@/config/provider'
 
-const CREDENTIAL_ID = 'localclaw-master-password'
+export const CREDENTIAL_ID = 'localclaw-master-password'
 
 // TypeScript type declarations for Credential Management API
 declare global {
@@ -121,6 +121,11 @@ async function getFromCredential(): Promise<{ password: string | null; error?: s
 // Session storage for master password (memory only)
 let sessionPassword: string | null = null
 
+// Test helper to reset session password
+export function __resetSessionPasswordForTest() {
+  sessionPassword = null
+}
+
 export function MasterKeyProvider({ children }: { children: ReactNode }) {
   const [internalStatus, setInternalStatus] = useState<MasterKeyStatus>({ state: 'checking' })
   const [isLoading, setIsLoading] = useState(true)
@@ -133,60 +138,77 @@ export function MasterKeyProvider({ children }: { children: ReactNode }) {
     initialized.current = true
 
     const checkState = async () => {
-      setIsLoading(true)
+      try {
+        setIsLoading(true)
 
-      // 1. Check if we have provider config
-      const config = await providerConfigs.getProviderConfig()
+        // Use Promise.race with timeout wrapper
+        const config = await Promise.race([
+          providerConfigs.getProviderConfig(),
+          new Promise<null>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout checking provider config')), 5000)
+          )
+        ])
 
-      if (!config) {
-        // No provider configured at all - user needs to set up
-        setInternalStatus({ state: 'not_set' })
-        setIsLoading(false)
-        return
-      }
-
-      // 2. Check if we have encrypted API key
-      if (!config.encryptedApiKey) {
-        // Provider exists but no API key - needs setup
-        setInternalStatus({ state: 'not_set' })
-        setIsLoading(false)
-        return
-      }
-
-      // 3. Try session password first
-      if (sessionPassword) {
-        try {
-          await decryptWithPassword(config.encryptedApiKey, sessionPassword)
-          setInternalStatus({ state: 'unlocked', password: sessionPassword })
+        if (!config) {
+          // No provider configured at all - user needs to set up
+          setInternalStatus({ state: 'not_set' })
           setIsLoading(false)
           return
-        } catch {
-          sessionPassword = null
         }
-      }
 
-      // 4. Try credential manager auto-unlock
-      const { password: credentialPassword, error: credentialError } = await getFromCredential()
-
-      if (credentialPassword) {
-        try {
-          await decryptWithPassword(config.encryptedApiKey, credentialPassword)
-          sessionPassword = credentialPassword
-          setInternalStatus({ state: 'unlocked', password: credentialPassword })
+        // 2. Check if we have encrypted API key
+        if (!config.encryptedApiKey) {
+          // Provider exists but no API key - needs setup
+          setInternalStatus({ state: 'not_set' })
           setIsLoading(false)
           return
-        } catch {
-          // Credential password decryption failed, continue to manual unlock
         }
-      }
 
-      // 5. Need manual unlock
-      setInternalStatus({
-        state: 'locked',
-        hasProviderConfig: true,
-        lastError: credentialError
-      })
-      setIsLoading(false)
+        // 3. Try session password first
+        if (sessionPassword) {
+          try {
+            await decryptWithPassword(config.encryptedApiKey, sessionPassword)
+            setInternalStatus({ state: 'unlocked', password: sessionPassword })
+            setIsLoading(false)
+            return
+          } catch {
+            sessionPassword = null
+          }
+        }
+
+        // 4. Try credential manager auto-unlock
+        const { password: credentialPassword, error: credentialError } = await getFromCredential()
+
+        if (credentialPassword) {
+          try {
+            await decryptWithPassword(config.encryptedApiKey, credentialPassword)
+            sessionPassword = credentialPassword
+            setInternalStatus({ state: 'unlocked', password: credentialPassword })
+            setIsLoading(false)
+            return
+          } catch {
+            // Credential password decryption failed, continue to manual unlock
+          }
+        }
+
+        // 5. Need manual unlock
+        setInternalStatus({
+          state: 'locked',
+          hasProviderConfig: true,
+          lastError: credentialError
+        })
+        setIsLoading(false)
+      } catch (err) {
+        // On timeout or other errors, fall back to locked state (not not_set)
+        // This preserves existing data and asks user to unlock
+        console.error('Error checking master key state:', err)
+        setInternalStatus({
+          state: 'locked',
+          hasProviderConfig: true,
+          lastError: err instanceof Error ? err.message : 'Unknown error'
+        })
+        setIsLoading(false)
+      }
     }
 
     checkState()

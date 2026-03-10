@@ -480,6 +480,68 @@
     "launch": "启动",
     "startAgent": "启动智能体",
     "viewSource": "查看源码",
+    "uniqueSection": {
+      "badge": "为何选择 LocalClaw",
+      "title": "与众不同",
+      "subtitle": "不只是另一个 AI 包装器。LocalClaw 重新定义了 AI 智能体的工作方式。"
+    },
+    "unique": {
+      "browserOnly": {
+        "title": "仅浏览器",
+        "description": "无需安装桌面应用。在任何现代浏览器中即刻运行，零配置。"
+      },
+      "opfs": {
+        "title": "OPFS 存储",
+        "description": "源私有文件系统提供快速、私密、持久的存储，仅限于您的源访问。"
+      },
+      "edge": {
+        "title": "边缘计算",
+        "description": "部署在 Cloudflare Workers 全球网络上，从任何地方访问延迟低于 50ms。"
+      },
+      "opensource": {
+        "title": "完全开源",
+        "description": "透明的代码库，您可以审计、分支和贡献。没有隐藏议程。"
+      }
+    },
+    "privacySection": {
+      "badge": "您的数据属于您",
+      "title": "隐私优先",
+      "subtitle": "从一开始就为保护您的数据而构建。没有妥协，没有后门。"
+    },
+    "privacy": {
+      "noServer": {
+        "title": "无服务器存储",
+        "description": "您的文件永远不会离开浏览器。所有处理都在本地设备上进行。"
+      },
+      "encrypted": {
+        "title": "客户端加密",
+        "description": "API 密钥使用主密码在存储前使用行业标准算法加密。"
+      },
+      "noTracking": {
+        "title": "无分析跟踪",
+        "description": "我们不跟踪您的使用情况、收集遥测数据或将您的数据出售给第三方。"
+      },
+      "localKeys": {
+        "title": "本地密钥存储",
+        "description": "您的 API 密钥仅存储在浏览器的加密存储中。我们永远看不到它们。"
+      }
+    },
+    "securityPromise": {
+      "title": "我们的安全承诺",
+      "description": "三个承诺写入我们的代码，而不仅仅是营销。",
+      "noLogs": {
+        "title": "无活动日志",
+        "description": "我们不记录您的对话或文件操作。"
+      },
+      "clientEncryption": {
+        "title": "客户端加密",
+        "description": "敏感数据在离开浏览器之前加密。"
+      },
+      "openSource": {
+        "title": "可审计代码",
+        "description": "开源意味着任何人都可以验证我们的安全声明。"
+      }
+    },
     "features": {
       "title": "强大功能",
       "subtitle": "AI 驱动开发所需的一切",

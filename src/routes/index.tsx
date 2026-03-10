@@ -9,6 +9,15 @@ import {
   Cpu,
   Code2,
   Bot,
+  Lock,
+  Eye,
+  EyeOff,
+  Database,
+  Globe,
+  CheckCircle2,
+  ShieldCheck,
+  KeyRound,
+  ServerOff,
 } from 'lucide-react'
 
 export const Route = createFileRoute('/')({ component: LandingPage })
@@ -50,6 +59,52 @@ function LandingPage() {
       icon: <Shield className="w-10 h-10 text-orange-500" />,
       title: t('landing.features.privacy.title'),
       description: t('landing.features.privacy.description'),
+    },
+  ]
+
+  const privacyFeatures = [
+    {
+      icon: <ServerOff className="w-8 h-8 text-orange-400" />,
+      title: t('landing.privacy.noServer.title'),
+      description: t('landing.privacy.noServer.description'),
+    },
+    {
+      icon: <Lock className="w-8 h-8 text-amber-400" />,
+      title: t('landing.privacy.encrypted.title'),
+      description: t('landing.privacy.encrypted.description'),
+    },
+    {
+      icon: <EyeOff className="w-8 h-8 text-coral" />,
+      title: t('landing.privacy.noTracking.title'),
+      description: t('landing.privacy.noTracking.description'),
+    },
+    {
+      icon: <KeyRound className="w-8 h-8 text-orange-400" />,
+      title: t('landing.privacy.localKeys.title'),
+      description: t('landing.privacy.localKeys.description'),
+    },
+  ]
+
+  const uniqueFeatures = [
+    {
+      icon: <ShieldCheck className="w-6 h-6 text-orange-400" />,
+      title: t('landing.unique.browserOnly.title'),
+      description: t('landing.unique.browserOnly.description'),
+    },
+    {
+      icon: <Database className="w-6 h-6 text-amber-400" />,
+      title: t('landing.unique.opfs.title'),
+      description: t('landing.unique.opfs.description'),
+    },
+    {
+      icon: <Globe className="w-6 h-6 text-coral" />,
+      title: t('landing.unique.edge.title'),
+      description: t('landing.unique.edge.description'),
+    },
+    {
+      icon: <CheckCircle2 className="w-6 h-6 text-orange-400" />,
+      title: t('landing.unique.opensource.title'),
+      description: t('landing.unique.opensource.description'),
     },
   ]
 
@@ -156,6 +211,47 @@ function LandingPage() {
         </div>
       </section>
 
+      {/* Unique Features Section - Why LocalClaw */}
+      <section className="relative z-10 py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-full glass border border-orange-500/30">
+              <ShieldCheck className="w-4 h-4 text-orange-400" />
+              <span className="text-sm text-orange-400 font-code">{t('landing.uniqueSection.badge')}</span>
+            </div>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">
+              {t('landing.uniqueSection.title')}
+            </h2>
+            <p className="text-stone-400 font-code max-w-2xl mx-auto">
+              {t('landing.uniqueSection.subtitle')}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {uniqueFeatures.map((feature, index) => (
+              <div
+                key={index}
+                className="group glass border border-orange-500/20 rounded-xl p-5 transition-all duration-300 hover:border-orange-500/40 hover:-translate-y-1"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 p-2 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                    {feature.icon}
+                  </div>
+                  <div>
+                    <h3 className="font-display text-base font-semibold text-white mb-2">
+                      {feature.title}
+                    </h3>
+                    <p className="text-stone-400 text-sm leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section className="relative z-10 py-20 px-6">
         <div className="max-w-7xl mx-auto">
@@ -222,6 +318,80 @@ function LandingPage() {
                 <span className="text-stone-300">~</span>
                 <span className="text-stone-500">_</span>
                 <span className="w-2 h-4 bg-orange-400 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Privacy & Security Section */}
+      <section className="relative z-10 py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-full glass border border-orange-500/30">
+              <Lock className="w-4 h-4 text-orange-400" />
+              <span className="text-sm text-orange-400 font-code">{t('landing.privacySection.badge')}</span>
+            </div>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">
+              {t('landing.privacySection.title')}
+            </h2>
+            <p className="text-stone-400 font-code max-w-2xl mx-auto">
+              {t('landing.privacySection.subtitle')}
+            </p>
+          </div>
+
+          {/* Privacy Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {privacyFeatures.map((feature, index) => (
+              <div
+                key={index}
+                className="group glass border border-orange-500/20 rounded-xl p-6 transition-all duration-300 hover:border-orange-500/40 hover:-translate-y-1"
+              >
+                <div className="mb-4 relative">
+                  <div className="absolute inset-0 blur-lg bg-orange-400/20 group-hover:bg-orange-400/30 transition-colors rounded-full" />
+                  {feature.icon}
+                </div>
+                <h3 className="font-display text-base font-semibold text-white mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-stone-400 text-sm leading-relaxed">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Security Promise Box */}
+          <div className="glass-strong border border-orange-500/30 rounded-2xl p-8 max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <h3 className="font-display text-2xl font-bold text-white mb-3">
+                {t('landing.securityPromise.title')}
+              </h3>
+              <p className="text-stone-400 font-code">
+                {t('landing.securityPromise.description')}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-orange-500/20 flex items-center justify-center border border-orange-500/40">
+                  <EyeOff className="w-6 h-6 text-orange-400" />
+                </div>
+                <h4 className="text-white font-semibold mb-1">{t('landing.securityPromise.noLogs.title')}</h4>
+                <p className="text-stone-500 text-sm">{t('landing.securityPromise.noLogs.description')}</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-400/20 flex items-center justify-center border border-amber-400/40">
+                  <KeyRound className="w-6 h-6 text-amber-400" />
+                </div>
+                <h4 className="text-white font-semibold mb-1">{t('landing.securityPromise.clientEncryption.title')}</h4>
+                <p className="text-stone-500 text-sm">{t('landing.securityPromise.clientEncryption.description')}</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-coral/20 flex items-center justify-center border border-coral/40">
+                  <Shield className="w-6 h-6 text-coral" />
+                </div>
+                <h4 className="text-white font-semibold mb-1">{t('landing.securityPromise.openSource.title')}</h4>
+                <p className="text-stone-500 text-sm">{t('landing.securityPromise.openSource.description')}</p>
               </div>
             </div>
           </div>
