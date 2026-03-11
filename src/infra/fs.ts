@@ -1,6 +1,7 @@
 import { connect } from '@tursodatabase/database-wasm/vite';
 import { AgentFS } from 'agentfs-sdk';
 import type { DirEntry } from 'agentfs-sdk';
+
 import type {
   IFileSystem,
   FsStat as IBashFsStat,
@@ -343,10 +344,16 @@ async function init(): Promise<{ fs: LocalClawFS; kv: LocalClawKV }> {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
+    // Load WASM and connect database
     const db = await connect('localclaw.db');
+
+    // Initialize AgentFS
     sharedFs = await AgentFS.openWith(db);
+
+    // Create instances
     fsInstance = new LocalClawFS(sharedFs);
     kvInstance = new LocalClawKV(sharedFs);
+
     return { fs: fsInstance, kv: kvInstance };
   })();
 

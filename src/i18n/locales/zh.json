@@ -469,6 +469,16 @@
       "invalidPassword": "主密码无效"
     }
   },
+  "loading": {
+    "title": "正在初始化 LocalClaw...",
+    "message": "请稍候，我们正在设置您的环境...",
+    "stages": {
+      "loadingDatabase": "正在加载数据库引擎...",
+      "initializingFilesystem": "正在初始化文件系统...",
+      "creatingInstances": "正在创建实例...",
+      "ready": "就绪！"
+    }
+  },
   "landing": {
     "badge": "AI 智能体框架",
     "title": {

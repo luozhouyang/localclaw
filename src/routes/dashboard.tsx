@@ -10,34 +10,45 @@ import { ComingSoonTab } from '@/components/dashboard/ComingSoonTab'
 import { MasterKeyGuard } from '@/components/dashboard/MasterKeyGuard'
 import { MasterKeyProvider } from '@/contexts/master-key-context'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { LoadingProgress } from '@/components/dashboard/LoadingProgress'
 import { MessageSquare, Code2, Bot, Monitor, Settings, Terminal, FolderOpen, CheckSquare, Clock, Brain, Puzzle, Key } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { taskScheduler } from '@/tasks'
 import { useTranslation } from 'react-i18next'
 import { ProviderSettings } from '@/components/settings/provider-settings'
 
 /**
  * Initialize filesystem (client-side only)
  * Sets up OPFS filesystem and chat storage structure
+ * Uses dynamic imports to prevent preloading from landing page
  */
 async function initFilesystem() {
+  // Dynamic import to prevent preloading from landing page
   const { getFilesystem } = await import('@/infra/fs')
+  const { threadManager } = await import('@/chat/thread-manager')
+
   const fs = await getFilesystem()
   // Initialize chat storage structure
-  const { threadManager } = await import('@/chat/thread-manager')
   await threadManager.initialize()
   return fs
 }
 
 /**
- * Dynamic import for task definitions (client-side only)
- * Prevents loading during SSR
+ * Dynamic import for task definitions and scheduler (client-side only)
+ * Prevents loading during SSR and preloading from landing page
  */
 let taskDefinitionsLoaded = false
 async function loadTaskDefinitions() {
   if (taskDefinitionsLoaded || typeof window === 'undefined') return
   await import('@/tasks/definitions')
   taskDefinitionsLoaded = true
+}
+
+/**
+ * Initialize task scheduler (dynamic import)
+ */
+async function initTaskScheduler() {
+  const { taskScheduler } = await import('@/tasks')
+  await taskScheduler.initialize()
 }
 
 export const Route = createFileRoute('/dashboard')({
@@ -50,6 +61,8 @@ export const Route = createFileRoute('/dashboard')({
  * Main application container with tabs for different features
  */
 function Dashboard() {
+  const [hasLoaded, setHasLoaded] = useState(false)
+
   // Initialize filesystem and task system on mount
   useEffect(() => {
     const init = async () => {
@@ -60,10 +73,21 @@ function Dashboard() {
         await taskScheduler.initialize()
       } catch (err) {
         // Initialization error handled silently
+      } finally {
+        setHasLoaded(true)
       }
     }
     init()
   }, [])
+
+  // Show loading progress during initialization
+  if (!hasLoaded) {
+    return (
+      <MasterKeyProvider>
+        <LoadingProgress />
+      </MasterKeyProvider>
+    )
+  }
 
   return (
     <MasterKeyProvider>

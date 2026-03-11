@@ -472,6 +472,16 @@
       "invalidPassword": "Invalid master password"
     }
   },
+  "loading": {
+    "title": "Initializing LocalClaw...",
+    "message": "Please wait while we set up your environment...",
+    "stages": {
+      "loadingDatabase": "Loading database engine...",
+      "initializingFilesystem": "Initializing filesystem...",
+      "creatingInstances": "Creating instances...",
+      "ready": "Ready!"
+    }
+  },
   "landing": {
     "badge": "AI AGENT FRAMEWORK",
     "title": {
