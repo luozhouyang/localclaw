@@ -45,9 +45,5 @@ export {
 // Store 导出
 export { CronStore, cronStore } from './store';
 
-// Scheduler 导出
-export {
-  CronScheduler,
-  cronScheduler,
-  createScheduler,
-} from './scheduler';
+// Note: CronScheduler is not re-exported here to avoid code-splitting issues.
+// Import directly from './scheduler' or use dynamic import for lazy loading.

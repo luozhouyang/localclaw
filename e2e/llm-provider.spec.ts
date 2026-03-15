@@ -48,7 +48,7 @@ test.describe('LLM Provider Settings', () => {
     await setupMasterPasswordIfNeeded(page)
 
     // Navigate to Settings tab (CONFIG tab)
-    await page.locator('[role="tab"]:has-text("SETTINGS")').click()
+    await page.locator('[role="tab"]:has-text("Settings")').click()
     await page.waitForTimeout(500)
   })
 

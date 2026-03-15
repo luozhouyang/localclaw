@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Trash2, MessageSquare, Edit2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { threadManager } from '@/chat/thread-manager';
 import { formatDateTime } from '@/lib/i18n-utils';
 import type { Thread, Channel } from '@/chat/types';
+import { getThreadManager } from '@/lib/imports';
 
 interface ThreadSidebarProps {
   currentThreadId: string | null;
@@ -27,10 +27,19 @@ export function ThreadSidebar({
   const [threads, setThreads] = useState<Thread[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const managerRef = useRef<ReturnType<typeof getThreadManager> extends Promise<infer T> ? T : never | null>(null);
+
+  // Initialize thread manager
+  useEffect(() => {
+    getThreadManager().then(mgr => {
+      managerRef.current = mgr;
+    });
+  }, []);
 
   const loadThreads = useCallback(async () => {
-    const list = await threadManager.listThreads(channel);
-    setThreads(list.filter(t => !t.metadata?.deleted));
+    if (!managerRef.current) return;
+    const list = await managerRef.current.listThreads(channel);
+    setThreads(list.filter(thread => !thread.metadata?.deleted));
   }, [channel]);
 
   useEffect(() => {
@@ -43,7 +52,9 @@ export function ThreadSidebar({
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm(t('common.confirm'))) {
-      await threadManager.deleteThread(id);
+      if (managerRef.current) {
+        await managerRef.current.deleteThread(id);
+      }
       loadThreads();
     }
   };
@@ -56,7 +67,9 @@ export function ThreadSidebar({
 
   const saveTitle = async () => {
     if (editingId && editTitle.trim()) {
-      await threadManager.updateThread(editingId, { title: editTitle.trim() });
+      if (managerRef.current) {
+        await managerRef.current.updateThread(editingId, { title: editTitle.trim() });
+      }
       setEditingId(null);
       loadThreads();
     }

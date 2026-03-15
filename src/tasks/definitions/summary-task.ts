@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { defineTask } from '../registry';
-import { memoryManager } from '@/memory/manager';
-import { threadManager } from '@/chat/thread-manager';
+import { getMemoryManager, getThreadManager } from '@/lib/imports';
 
 const inputSchema = z.object({
   threadId: z.string(),
@@ -26,10 +25,12 @@ export const summaryTask = defineTask({
     ctx.log('info', 'Loading messages for summary', { threadId });
 
     // Get last summary end index
+    const memoryManager = await getMemoryManager();
     const lastEndIndex = await memoryManager.getLastSummaryEndIndex(threadId);
     ctx.reportProgress(10, 'Loading messages');
 
     // Load all messages
+    const threadManager = await getThreadManager();
     const messages = await threadManager.loadMessages(threadId);
     ctx.reportProgress(30, `Loaded ${messages.length} messages`);
 
@@ -113,7 +114,7 @@ export const summaryTask = defineTask({
     });
 
     return {
-      summary: summary.content,
+      summary: combinedContent,
       tokenCount: summary.tokenCount,
     };
   },

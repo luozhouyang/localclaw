@@ -1,4 +1,4 @@
-import { taskQueue, taskStore } from '@/tasks';
+import { getTaskQueue, getTaskStore } from '@/lib/imports';
 import type { TaskInstance } from '@/tasks/types';
 import { CronParser } from './parser';
 import { cronStore } from './store';
@@ -361,7 +361,9 @@ export class CronScheduler {
       };
 
       // 保存任务并加入队列
+      const taskStore = await getTaskStore();
       await taskStore.saveTask(task);
+      const taskQueue = await getTaskQueue();
       await taskQueue.enqueue(task);
       const taskId = task.id;
 

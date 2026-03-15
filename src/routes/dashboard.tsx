@@ -15,41 +15,7 @@ import { MessageSquare, Code2, Bot, Monitor, Settings, Terminal, FolderOpen, Che
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ProviderSettings } from '@/components/settings/provider-settings'
-
-/**
- * Initialize filesystem (client-side only)
- * Sets up OPFS filesystem and chat storage structure
- * Uses dynamic imports to prevent preloading from landing page
- */
-async function initFilesystem() {
-  // Dynamic import to prevent preloading from landing page
-  const { getFilesystem } = await import('@/infra/fs')
-  const { threadManager } = await import('@/chat/thread-manager')
-
-  const fs = await getFilesystem()
-  // Initialize chat storage structure
-  await threadManager.initialize()
-  return fs
-}
-
-/**
- * Dynamic import for task definitions and scheduler (client-side only)
- * Prevents loading during SSR and preloading from landing page
- */
-let taskDefinitionsLoaded = false
-async function loadTaskDefinitions() {
-  if (taskDefinitionsLoaded || typeof window === 'undefined') return
-  await import('@/tasks/definitions')
-  taskDefinitionsLoaded = true
-}
-
-/**
- * Initialize task scheduler (dynamic import)
- */
-async function initTaskScheduler() {
-  const { taskScheduler } = await import('@/tasks')
-  await taskScheduler.initialize()
-}
+import { initializeDashboard } from '@/lib/imports'
 
 export const Route = createFileRoute('/dashboard')({
   component: Dashboard,
@@ -63,14 +29,11 @@ export const Route = createFileRoute('/dashboard')({
 function Dashboard() {
   const [hasLoaded, setHasLoaded] = useState(false)
 
-  // Initialize filesystem and task system on mount
+  // Initialize all systems on mount
   useEffect(() => {
     const init = async () => {
       try {
-        await initFilesystem()
-        // Load task definitions dynamically (client-side only)
-        await loadTaskDefinitions()
-        await taskScheduler.initialize()
+        await initializeDashboard()
       } catch (err) {
         // Initialization error handled silently
       } finally {

@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { taskScheduler } from '@/tasks';
-import { taskStore } from '@/tasks/store';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import type { TaskInstance, TaskPriority } from '@/tasks/types';
+import { getTaskScheduler, getTaskStore } from '@/lib/imports';
 
 interface UseAsyncTasksReturn {
   tasks: TaskInstance[];
@@ -23,12 +22,26 @@ export function useAsyncTasks(): UseAsyncTasksReturn {
   const [tasks, setTasks] = useState<TaskInstance[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const schedulerRef = useRef<Awaited<ReturnType<typeof getTaskScheduler>> | null>(null);
+  const storeRef = useRef<Awaited<ReturnType<typeof getTaskStore>> | null>(null);
+
+  // Initialize
+  useEffect(() => {
+    getTaskScheduler().then(sched => {
+      schedulerRef.current = sched;
+    });
+    getTaskStore().then(store => {
+      storeRef.current = store;
+    });
+  }, []);
 
   const loadTasks = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const loaded = await taskStore.listTasks();
+      const store = storeRef.current;
+      if (!store) return;
+      const loaded = await store.listTasks();
       setTasks(loaded);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tasks');
@@ -40,14 +53,14 @@ export function useAsyncTasks(): UseAsyncTasksReturn {
   useEffect(() => {
     loadTasks();
 
-    const unsubscribe = taskScheduler.subscribe((updatedTask) => {
+    const unsubscribe = schedulerRef.current?.subscribe((updatedTask) => {
       setTasks((prev) =>
         prev.map((t) => (t.id === updatedTask.id ? updatedTask : t))
       );
     });
 
     return () => {
-      unsubscribe();
+      unsubscribe?.();
     };
   }, [loadTasks]);
 
@@ -59,7 +72,9 @@ export function useAsyncTasks(): UseAsyncTasksReturn {
     ): Promise<TaskInstance> => {
       setIsLoading(true);
       try {
-        const task = await taskScheduler.schedule(type, input, options);
+        const scheduler = schedulerRef.current;
+        if (!scheduler) throw new Error('Task scheduler not initialized');
+        const task = await scheduler.schedule(type, input, options);
         setTasks((prev) => [task, ...prev]);
         return task;
       } catch (err) {
@@ -74,7 +89,9 @@ export function useAsyncTasks(): UseAsyncTasksReturn {
 
   const cancelTask = useCallback(async (taskId: string) => {
     try {
-      await taskScheduler.cancel(taskId);
+      const scheduler = schedulerRef.current;
+      if (!scheduler) return;
+      await scheduler.cancel(taskId);
     } catch (err) {
       console.error('Failed to cancel task:', err);
     }
@@ -82,7 +99,9 @@ export function useAsyncTasks(): UseAsyncTasksReturn {
 
   const resumeTask = useCallback(async (taskId: string) => {
     try {
-      await taskScheduler.resume(taskId);
+      const scheduler = schedulerRef.current;
+      if (!scheduler) return;
+      await scheduler.resume(taskId);
     } catch (err) {
       console.error('Failed to resume task:', err);
     }
@@ -90,7 +109,9 @@ export function useAsyncTasks(): UseAsyncTasksReturn {
 
   const retryTask = useCallback(async (taskId: string) => {
     try {
-      await taskScheduler.resume(taskId);
+      const scheduler = schedulerRef.current;
+      if (!scheduler) return;
+      await scheduler.resume(taskId);
     } catch (err) {
       console.error('Failed to retry task:', err);
     }
@@ -98,7 +119,9 @@ export function useAsyncTasks(): UseAsyncTasksReturn {
 
   const deleteTask = useCallback(async (taskId: string) => {
     try {
-      await taskStore.deleteTask(taskId);
+      const store = storeRef.current;
+      if (!store) return;
+      await store.deleteTask(taskId);
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
     } catch (err) {
       console.error('Failed to delete task:', err);

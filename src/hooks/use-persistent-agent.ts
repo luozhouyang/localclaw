@@ -1,17 +1,9 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import type { UIMessage } from 'ai';
 import { generateId } from '@/lib/chat-utils';
-import { threadManager } from '@/chat/thread-manager';
-import { taskScheduler } from '@/tasks';
-import { taskStore } from '@/tasks/store';
 import { agentLoop } from '@/agent/loop';
 import type { Thread } from '@/chat/types';
-
-// Lazy import memoryManager (client-side only)
-async function getMemoryManager() {
-  const { memoryManager } = await import('@/memory/manager');
-  return memoryManager;
-}
+import { getThreadManager, getTaskScheduler, getTaskStore, getMemoryManager } from '@/lib/imports';
 
 interface LLMProvider {
   baseURL: string;
@@ -46,10 +38,18 @@ export function usePersistentAgent(
   const [error, setError] = useState<Error | null>(null);
   const [currentThread, setCurrentThread] = useState<Thread | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const managerRef = useRef<Awaited<ReturnType<typeof getThreadManager>> | null>(null);
+
+  // Initialize thread manager
+  useEffect(() => {
+    getThreadManager().then(mgr => {
+      managerRef.current = mgr;
+    });
+  }, []);
 
   // Load messages when thread changes
   useEffect(() => {
-    if (!options.threadId) {
+    if (!options.threadId || !managerRef.current) {
       setMessages([]);
       setCurrentThread(null);
       return;
@@ -58,8 +58,8 @@ export function usePersistentAgent(
     const load = async () => {
       try {
         const [thread, msgs] = await Promise.all([
-          threadManager.getThread(options.threadId!),
-          threadManager.loadMessages(options.threadId!),
+          managerRef.current.getThread(options.threadId!),
+          managerRef.current.loadMessages(options.threadId!),
         ]);
         setCurrentThread(thread);
         setMessages(msgs);
@@ -91,7 +91,8 @@ export function usePersistentAgent(
       };
 
       // Save and display user message
-      await threadManager.appendMessage(threadId, userMessage);
+      if (!managerRef.current) return;
+      await managerRef.current.appendMessage(threadId, userMessage);
       setMessages((prev) => [...prev, userMessage]);
 
       // Build message history for LLM
@@ -201,12 +202,14 @@ export function usePersistentAgent(
 
             case 'done': {
               // Save completed assistant message
-              if (assistantMessage) {
-                await threadManager.appendMessage(threadId, assistantMessage);
+              if (assistantMessage && managerRef.current) {
+                await managerRef.current.appendMessage(threadId, assistantMessage);
 
                 // Check if we should trigger summary generation (every 20 messages)
-                const messageCount = await threadManager.getMessageCount(threadId);
+                const messageCount = await managerRef.current.getMessageCount(threadId);
                 if (messageCount % 20 === 0) {
+                  const taskScheduler = await getTaskScheduler();
+                  const taskStore = await getTaskStore();
                   const existingTasks = await taskStore.findTasks({
                     type: 'generate_summary',
                     status: 'pending',
@@ -259,7 +262,7 @@ export function usePersistentAgent(
   }, []);
 
   const clear = useCallback(async () => {
-    if (!options.threadId) return;
+    if (!options.threadId || !managerRef.current) return;
     // Clear messages but keep thread
     const fs = await (await import('@/infra/fs')).getFilesystem();
     await fs.writeFile(
@@ -267,14 +270,15 @@ export function usePersistentAgent(
       ''
     );
     setMessages([]);
-    await threadManager.updateThread(options.threadId, {
+    await managerRef.current.updateThread(options.threadId, {
       messageCount: 0,
       lastMessagePreview: undefined,
     });
   }, [options.threadId]);
 
   const createNewThread = useCallback(async (): Promise<string> => {
-    const thread = await threadManager.createThread('local');
+    if (!managerRef.current) throw new Error('Thread manager not initialized');
+    const thread = await managerRef.current.createThread('local');
     return thread.id;
   }, []);
 
@@ -285,7 +289,9 @@ export function usePersistentAgent(
 
   const deleteThread = useCallback(
     async (id: string): Promise<void> => {
-      await threadManager.deleteThread(id);
+      if (managerRef.current) {
+        await managerRef.current.deleteThread(id);
+      }
       if (id === options.threadId) {
         setMessages([]);
         setCurrentThread(null);
@@ -296,7 +302,9 @@ export function usePersistentAgent(
 
   const updateThreadTitle = useCallback(
     async (id: string, title: string): Promise<void> => {
-      await threadManager.updateThread(id, { title });
+      if (managerRef.current) {
+        await managerRef.current.updateThread(id, { title });
+      }
       if (id === options.threadId && currentThread) {
         setCurrentThread({ ...currentThread, title });
       }

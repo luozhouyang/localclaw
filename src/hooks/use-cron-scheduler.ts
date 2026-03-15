@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { CronJob, SchedulerStats, NewCronJob } from '@/crontab/types';
-
-// Lazy import cronScheduler (client-side only)
-async function getCronScheduler() {
-  const { cronScheduler } = await import('@/crontab/scheduler');
-  return cronScheduler;
-}
+import { getCronScheduler } from '@/lib/imports';
 
 /**
  * 调度器生命周期 Hook

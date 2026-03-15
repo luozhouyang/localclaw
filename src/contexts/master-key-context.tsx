@@ -143,7 +143,13 @@ export function MasterKeyProvider({ children }: { children: ReactNode }) {
         setIsLoading(true)
 
         // First check if master key has been initialized (even without provider config)
-        const kv = await getKV()
+        // Add timeout for getKV() call in case WASM fails to load
+        const kv = await Promise.race([
+          getKV(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout initializing KV storage')), 15000)
+          )
+        ])
         const masterKeyInitialized = await kv.get('master-key:initialized')
 
         // Use Promise.race with timeout wrapper - increased timeout for slower connections
